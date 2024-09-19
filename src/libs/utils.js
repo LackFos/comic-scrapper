@@ -3,14 +3,12 @@ import axios from "axios";
 import sharp from "sharp";
 import dotenv from "dotenv";
 import winston from "winston";
-import puppeteer from "puppeteer-extra";
+import puppeteer from "puppeteer-core";
 import { Logtail } from "@logtail/node";
 import { LogtailTransport } from "@logtail/winston";
-import pluginStealth from "puppeteer-extra-plugin-stealth";
 
 dotenv.config();
 
-puppeteer.use(pluginStealth());
 export const scrapper = puppeteer;
 
 const logtail = new Logtail(process.env.LOGTAIL_SOURCE_TOKEN);

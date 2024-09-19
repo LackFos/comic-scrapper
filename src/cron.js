@@ -32,7 +32,7 @@ const limit = pLimit(5);
     for (const website of websiteData) {
       logger.info("Launching browser");
 
-      const browser = await scrapper.launch({ headless: false });
+      const browser = await scrapper.launch({ headless: true, executablePath: "/usr/bin/chromium", args: ["--no-sandbox"] });
       const page = await browser.newPage();
 
       const userAgent = new UserAgent();

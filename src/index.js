@@ -29,7 +29,7 @@ const limit = pLimit(5);
     },
   ]);
 
-  const browser = await scrapper.launch({ headless: false });
+  const browser = await scrapper.launch({ headless: true, executablePath: "/usr/bin/chromium", args: ["--no-sandbox"] });
   const page = await browser.newPage();
 
   const websiteData = WEBSITES[website];
