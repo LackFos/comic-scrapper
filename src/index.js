@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import pLimit from "p-limit";
 import inquirer from "inquirer";
 import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
-import { delay, downloadFile, scrapper } from "./libs/utils.js";
+import { delay, downloadFile, logger, scrapper } from "./libs/utils.js";
 
 dotenv.config();
 const limit = pLimit(5);
@@ -29,14 +29,18 @@ const limit = pLimit(5);
     },
   ]);
 
-  const browser = await scrapper.launch({ headless: false });
+  logger.info("Launching browser");
+
+  const browser = await scrapper.launch({ headless: true });
   const page = await browser.newPage();
 
   const websiteData = WEBSITES[website];
   const websiteUrl = keyword ? `${websiteData.search}${keyword}` : websiteData.default;
+
+  logger.info(`Opening page: ${websiteUrl}`);
   page.goto(websiteUrl, { timeout: 0 });
 
-  console.log(`\n🔎 Fetching Comics...\n`);
+  logger.info(`Fetching titles...`);
   const titleElement =
     keyword && websiteData.searchElements?.listTitle ? websiteData.searchElements.listTitle : websiteData.elements.listTitle;
   await page.waitForSelector(titleElement.parent, { timeout: 0 });
@@ -50,6 +54,8 @@ const limit = pLimit(5);
       })),
     titleElement
   );
+
+  logger.info(`${titles.length} comics found.`);
 
   const { comicTitle } = await inquirer.prompt([
     {
@@ -68,8 +74,11 @@ const limit = pLimit(5);
   let availableChapters = [];
 
   try {
+    logger.info(`📢 Opening comic page: ${selectedComic.link}`);
     await page.waitForSelector(websiteData.elements.title);
     const title = (await page.$eval(websiteData.elements.title, (element) => element.textContent.trim())).replace(/(komik|comic)\s*/gi, "");
+
+    logger.info(`Checking if comic ${title} exists in the API...`);
 
     const response = await axios.get(`${process.env.API_ENDPOINT}/api/comics/find-one/?name=${title}`, {
       headers: { Authorization: process.env.ACCESS_TOKEN },
@@ -77,8 +86,11 @@ const limit = pLimit(5);
 
     comicId = response.data.payload.id;
     availableChapters = response.data.payload.chapters.map((chapter) => chapter.number);
+    logger.info(`Comic ${title} found. ID: ${comicId}`);
   } catch (error) {
     if (error.response?.status === 404) {
+      logger.info(`Comic ${selectedComic.text} not found. Fetching metadata...`);
+
       const payload = {
         name: undefined,
         description: undefined,
@@ -97,31 +109,37 @@ const limit = pLimit(5);
           /(komik|comic)\s*/gi,
           ""
         );
+        logger.info(`comic-name: Done!`);
 
         // fetch description
         await page.waitForSelector(websiteData.elements.description);
         payload.description = await page.$eval(websiteData.elements.description, (element) => element.textContent.trim());
+        logger.info(`comic-description: Done!`);
 
         // fetch author
         await page.waitForSelector(websiteData.elements.author);
         payload.author = (await page.$eval(websiteData.elements.author, (element) => element.textContent.trim()))
           .replace(/(pengarang|author)\s*/gi, "")
           .trim();
+        logger.info(`comic-author: Done!`);
 
         // fetch type_id
         await page.waitForSelector(websiteData.elements.type);
         const type = await page.$eval(websiteData.elements.type, (element) => element.textContent.trim());
         payload.type_id = TYPES[type] ?? undefined;
+        logger.info(`comic-type: Done!`);
 
         // fetch status_id
         await page.waitForSelector(websiteData.elements.status);
         const status = (await page.$eval(websiteData.elements.status, (element) => element.textContent.trim())).replace(/status\s*/gi, "");
         payload.status_id = STATUSES[status] ?? STATUSES["ongoing"];
+        logger.info(`comic-status: Done!`);
 
         // fetch genres
         await page.waitForSelector(websiteData.elements.genre);
         const genres = await page.$$eval(websiteData.elements.genre, (elements) => elements.map((element) => element.textContent.trim()));
         payload.genres = genres.map((genre) => GENRES[genre]).filter(Boolean);
+        logger.info(`comic-genres: Done!`);
 
         // fetch rating
         const mangadexPage = await browser.newPage();
@@ -135,9 +153,9 @@ const limit = pLimit(5);
 
           await mangadexPage.waitForSelector("span.text-primary");
           payload.rating = await mangadexPage.$eval("span.text-primary", (element) => element.textContent.trim());
-          console.log(`comic-rating: Done!`);
+          logger.info(`comic-rating: Done!`);
         } catch (error) {
-          console.log(`⚠️ comic-rating: Failed : `);
+          logger.error(`⚠️ comic-rating: Failed : ${error.message}`);
         } finally {
           mangadexPage.close();
         }
@@ -151,10 +169,9 @@ const limit = pLimit(5);
           await downloadFile("./src/temp", `cover`, imageUrl);
 
           payload.image = fs.createReadStream(`./src/temp/cover.webp`);
-          console.log(`comic-image: Done!`);
+          logger.info(`comic-image: Done!`);
         } catch (error) {
-          console.log(`⚠️ comic-image: Failed :`);
-          console.log(error);
+          logger.error(`⚠️ comic-image: Failed : ${error.message}`);
         }
 
         const response = await axios.post(`${process.env.API_ENDPOINT}/api/comics`, payload, {
@@ -162,16 +179,17 @@ const limit = pLimit(5);
         });
 
         comicId = response.data.payload.id;
-        console.log(`✅ Comic created successfuly`);
+        logger.info(`✅ Comic created successfuly`);
       } catch (error) {
-        console.log(`⚠️ Failed to create comic, ${error.message}`);
-        console.log(error);
+        logger.error(`⚠️ Failed to create comic : ${error.message}`);
+        logger.error(error);
         process.exit(1);
       } finally {
         fs.rmSync("./src/temp", { recursive: true, force: true });
       }
     } else {
-      console.log(`⚠️ Something went wrong, ${error}, ${error.message}`);
+      logger.warn(`⚠️ Something went wrong`);
+      console.log(error);
       process.exit(1);
     }
   }
@@ -187,7 +205,7 @@ const limit = pLimit(5);
 
   // 8) Fetch the list of chapters available for the selected comic
   await page.waitForSelector(websiteData.elements.chapter.parent);
-  console.log(`\n🔎 Fetching Chapters...\n`);
+  logger.info(`Fetching Chapters`);
 
   let chapters = await page.$$eval(
     websiteData.elements.chapter.parent,
@@ -228,18 +246,23 @@ const limit = pLimit(5);
       websiteData.chapterDelay && (await delay(websiteData.chapterDelay));
       const startTime = Date.now();
 
-      console.log("\n📢 Opening chapter: ", chapter.link);
+      logger.info(`📢 Opening chapter page: ${chapter.link}`);
       page.goto(chapter.link, { timeout: 0 });
 
-      console.log(`\n⬇️ Downloading Images...\n`);
+      logger.info(`Downloading images for chapter ${chapter.text}`);
 
       await page.waitForSelector(websiteData.elements.chapter.image);
       const images = await page.$$eval(websiteData.elements.chapter.image, (images) => images.map((image) => image.src));
 
       const downloadPromises = images.map((url) =>
-        limit(() => {
-          const fileExtension = url.match(/\.\w+$/g)[0];
-          return downloadFile("./src/temp", `${Date.now()}${fileExtension}`, url);
+        limit(async () => {
+          try {
+            const fileExtension = url.match(/\.\w+$/)?.[0];
+            if (!fileExtension) return Promise.resolve(true);
+            return await downloadFile("./src/temp", `${Date.now()}`, url);
+          } catch (error) {
+            throw error;
+          }
         })
       );
 
@@ -259,15 +282,18 @@ const limit = pLimit(5);
         }),
       };
 
+      console.log(`Uploading chapter ${chapterNumber} data...`);
+
       await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
         headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
       });
 
       const endTime = Date.now();
-      console.log(`\n🎉 Done in ${(endTime - startTime) / 1000} seconds`);
+      logger.info(`🎉 Chapter ${chapter.text} processed in ${(endTime - startTime) / 1000} seconds`);
     } catch (error) {
-      console.log(`⚠️ Failed to create chapter: ${chapter.link}, ${error}, ${error.message}`);
+      logger.error(`⚠️ Failed to process chapter ${chapter.link}, ${error.message}`);
       console.log(error);
+      continue;
     } finally {
       fs.rmSync("./src/temp", { recursive: true, force: true });
     }

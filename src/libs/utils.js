@@ -41,10 +41,6 @@ export const downloadFile = async (targetDirectory, filename, url) => {
     try {
       const response = await axios.get(url, { responseType: "arraybuffer" });
 
-      if (Number(response.headers["content-length"]) < 50) {
-        reject(new Error(`💔 Broken file detected ${url}`));
-      }
-
       if (!response.headers["content-type"].startsWith("image")) {
         resolve(true);
       }
