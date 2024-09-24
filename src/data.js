@@ -1,7 +1,7 @@
 export const WEBSITES = {
   "shinigami05.com": {
     comicDelay: 8000,
-    chapterDelay: 8000,
+    chapterDelay: 4000,
     default: "https://shinigami05.com",
     search: "https://shinigami05.com/?post_type=wp-manga&s=",
     searchElements: {
@@ -80,9 +80,9 @@ export const WEBSITES = {
       },
     },
   },
-  "komikindo.ws": {
-    default: "https://komikindo.ws/komik-terbaru/",
-    search: "https://komikindo.ws/?s=",
+  "komikindo.cx": {
+    default: "https://komikindo.cx/komik-terbaru/",
+    search: "https://komikindo.cx/?s=",
     elements: {
       listTitle: {
         parent: ".animepost",
