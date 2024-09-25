@@ -263,7 +263,7 @@ const limit = pLimit(5);
 
             while (true) {
               try {
-                logger.info(`Uploading chapter ${chapterNumber} attempt: ${attempts}`);
+                logger.info(`Uploading chapter ${chapter.value} attempt: ${attempts}`);
 
                 await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
                   headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
@@ -312,9 +312,9 @@ const limit = pLimit(5);
 })();
 
 process.on("unhandledRejection", (reason, promise) => {
-  logger.error("Unhandled Rejection at:", promise, "reason:", reason);
+  console.log("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 process.on("uncaughtException", (error) => {
-  logger.error("Uncaught Exception:", error.message, error.stack);
+  console.log("Uncaught Exception:", error.message, error.stack);
 });

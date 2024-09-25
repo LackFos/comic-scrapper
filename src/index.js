@@ -330,9 +330,9 @@ const limit = pLimit(5);
 })();
 
 process.on("unhandledRejection", (reason, promise) => {
-  logger.error("Unhandled Rejection at:", promise, "reason:", reason);
+  console.log("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 process.on("uncaughtException", (error) => {
-  logger.error("Uncaught Exception:", error.message, error.stack);
+  console.log("Uncaught Exception:", error.message, error.stack);
 });
