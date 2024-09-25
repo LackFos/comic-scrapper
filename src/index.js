@@ -281,28 +281,35 @@ const limit = pLimit(5);
         }),
       };
 
+      let delayTime = 1000;
+      let attempts = 1;
+
       while (true) {
         try {
-          console.log(`Uploading chapter ${chapterNumber} data...`);
+          logger.info(`Uploading chapter ${chapterNumber} attempt: ${attempts}`);
 
           await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
             headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
-            timeout: 30000,
           });
 
           break;
         } catch (error) {
           if (error.response && error.response.status === 502) {
             logger.warn(`⚠️ 502 Error: Retrying due to server error...`);
-            await delay(1000);
           } else if (error.code === "ECONNABORTED" || error.code === "ECONNRESET") {
             logger.warn(`⚠️ Timeout Error: Retrying due to connection timeout...`);
-            await delay(1000);
           } else {
             console.log(error);
-
             logger.error(`⚠️ Failed to create chapter: ${error.message}`);
             break;
+          }
+          await delay(delayTime);
+
+          delayTime *= 2;
+          attempts++;
+
+          if (attempts >= 5) {
+            throw new Error("Maximum number of attempts reached");
           }
         }
       }
