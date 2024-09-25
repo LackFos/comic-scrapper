@@ -282,15 +282,25 @@ const limit = pLimit(5);
         }),
       };
 
-      console.log(`Uploading chapter ${chapterNumber} data...`);
+      while (true) {
+        try {
+          console.log(`Uploading chapter ${chapterNumber} data...`);
 
-      try {
-        await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
-          headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
-        });
-      } catch (error) {
-        logger.error(`⚠️ Failed to create chapter : ${error.message}`);
-        continue;
+          await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
+            headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
+            timeout: 20000,
+          });
+
+          break;
+        } catch (error) {
+          if (error.response && error.response.status === 502) {
+            logger.warn(`⚠️ 502 Error: Retrying due to server error...`);
+            await delay(1000);
+          } else {
+            logger.error(`⚠️ Failed to create chapter: ${error.message}`);
+            break;
+          }
+        }
       }
 
       const endTime = Date.now();

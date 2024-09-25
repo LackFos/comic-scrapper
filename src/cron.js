@@ -255,21 +255,28 @@ const limit = pLimit(5);
               comic_id: comicId,
               number: chapter.value,
               name: `Chapter ${chapter.value}`,
-              images: files.map((file) => {
-                const filePath = `./src/temp/${file}`;
-                return fs.createReadStream(filePath);
-              }),
+              images: files.map((file) => fs.createReadStream(`./src/temp/${file}`)),
             };
 
-            logger.info(`Uploading chapter ${chapter.value} data...`);
+            while (true) {
+              try {
+                logger.info(`Uploading chapter ${chapter.value} data...`);
 
-            try {
-              await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
-                headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
-              });
-            } catch (error) {
-              logger.error(`⚠️ Failed to create chapter : ${error.message}`);
-              continue;
+                await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
+                  headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
+                  timeout: 20000,
+                });
+
+                break;
+              } catch (error) {
+                if (error.response && error.response.status === 502) {
+                  logger.warn(`⚠️ 502 Error: Retrying due to server error...`);
+                  await delay(1000);
+                } else {
+                  logger.error(`⚠️ Failed to create chapter: ${error.message}`);
+                  break;
+                }
+              }
             }
 
             const endTime = Date.now();
