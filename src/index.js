@@ -288,7 +288,7 @@ const limit = pLimit(5);
 
           await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
             headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
-            timeout: 20000,
+            timeout: 30000,
           });
 
           break;
@@ -296,10 +296,12 @@ const limit = pLimit(5);
           if (error.response && error.response.status === 502) {
             logger.warn(`⚠️ 502 Error: Retrying due to server error...`);
             await delay(1000);
-          } else if (error.code === "ECONNABORTED") {
-            logger.warn(`⚠️ ECONNABORTED Error: Retrying due to connection timeout...`);
+          } else if (error.code === "ECONNABORTED" || error.code === "ECONNRESET") {
+            logger.warn(`⚠️ Timeout Error: Retrying due to connection timeout...`);
             await delay(1000);
           } else {
+            console.log(error);
+
             logger.error(`⚠️ Failed to create chapter: ${error.message}`);
             break;
           }

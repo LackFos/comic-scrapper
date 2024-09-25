@@ -76,7 +76,7 @@ export const WEBSITES = {
         parent: ".clstyle li",
         text: ".chapternum",
         link: "a",
-        image: ".readerarea img",
+        image: "#readerarea img",
       },
     },
   },
