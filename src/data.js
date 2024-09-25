@@ -80,9 +80,9 @@ export const WEBSITES = {
       },
     },
   },
-  "komikindo.cx": {
-    default: "https://komikindo.cx/komik-terbaru/",
-    search: "https://komikindo.cx/?s=",
+  "komikindo.lol": {
+    default: "https://komikindo.lol/komik-terbaru/",
+    search: "https://komikindo.lol/?s=",
     elements: {
       listTitle: {
         parent: ".animepost",
