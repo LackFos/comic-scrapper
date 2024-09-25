@@ -272,6 +272,9 @@ const limit = pLimit(5);
                 if (error.response && error.response.status === 502) {
                   logger.warn(`⚠️ 502 Error: Retrying due to server error...`);
                   await delay(1000);
+                } else if (error.code === "ECONNABORTED") {
+                  logger.warn(`⚠️ ECONNABORTED Error: Retrying due to connection timeout...`);
+                  await delay(1000);
                 } else {
                   logger.error(`⚠️ Failed to create chapter: ${error.message}`);
                   break;
