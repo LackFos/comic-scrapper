@@ -263,9 +263,14 @@ const limit = pLimit(5);
 
             logger.info(`Uploading chapter ${chapter.value} data...`);
 
-            await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
-              headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
-            });
+            try {
+              await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
+                headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
+              });
+            } catch (error) {
+              logger.error(`⚠️ Failed to create chapter : ${error.message}`);
+              continue;
+            }
 
             const endTime = Date.now();
             logger.info(`🎉 Chapter ${chapter.value} processed in ${(endTime - startTime) / 1000} seconds`);
@@ -286,3 +291,11 @@ const limit = pLimit(5);
 
   cron.schedule("0 */3 * * *", startScrapping);
 })();
+
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught Exception:", error.message, error.stack);
+});
