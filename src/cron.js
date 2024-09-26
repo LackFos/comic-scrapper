@@ -308,7 +308,7 @@ const limit = pLimit(5);
 
   startScrapping();
 
-  cron.schedule("0 */3 * * *", startScrapping);
+  // cron.schedule("0 */3 * * *", startScrapping);
 })();
 
 process.on("unhandledRejection", (reason, promise) => {
