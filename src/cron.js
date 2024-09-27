@@ -2,16 +2,19 @@ import fs from "fs";
 import axios from "axios";
 import dotenv from "dotenv";
 import pLimit from "p-limit";
-import cron from "node-cron";
 import inquirer from "inquirer";
 import UserAgent from "user-agents";
 import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
 import { delay, downloadFile, logger, scrapper } from "./libs/utils.js";
+import connectToDatabase from "./connectToDatabase.js";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 dotenv.config();
 const limit = pLimit(5);
 
 (async () => {
+  const db = await connectToDatabase();
+
   const { website } = await inquirer.prompt([
     {
       name: "website",
@@ -68,6 +71,7 @@ const limit = pLimit(5);
         page.goto(title.link, { timeout: 0 });
 
         let comicId = null;
+        let similiarTitle = null;
         let availableChapters = [];
 
         try {
@@ -79,13 +83,27 @@ const limit = pLimit(5);
 
           logger.info(`Checking if comic ${comicName} exists in the API...`);
 
-          const response = await axios.get(`${process.env.API_ENDPOINT}/api/comics/find-one/?name=${comicName}`, {
-            headers: { Authorization: process.env.ACCESS_TOKEN },
-          });
+          const similiarTitleRef = collection(db, "similiar-title");
+
+          const q = query(similiarTitleRef, where("raw", "==", comicName.toLocaleLowerCase()));
+          const querySnapshot = await getDocs(q);
+
+          if (querySnapshot.size > 0) {
+            const data = querySnapshot.docs[0].data();
+            logger.info(`[SIMILAR-TITLE-FOUND] ${comicName} exists in similar titles database. using ${data.similiarTitle} instead`);
+            similiarTitle = data.similiarTitle;
+          }
+
+          const response = await axios.get(
+            `${process.env.API_ENDPOINT}/api/comics/find-one/?name=${similiarTitle ? similiarTitle : comicName}`,
+            {
+              headers: { Authorization: process.env.ACCESS_TOKEN },
+            }
+          );
 
           comicId = response.data.payload.id;
           availableChapters = response.data.payload.chapters.map((chapter) => chapter.number);
-          logger.info(`Comic ${comicName} found. ID: ${comicId}`);
+          logger.info(`Comic ${similiarTitle ? similiarTitle : comicName} found. ID: ${comicId}`);
         } catch (error) {
           if (error.response?.status === 404) {
             logger.info(`Comic ${title.text} not found. Fetching metadata...`);
@@ -103,11 +121,16 @@ const limit = pLimit(5);
 
             try {
               // fetch title
-              await page.waitForSelector(website.elements.title);
-              payload.name = (await page.$eval(website.elements.title, (element) => element.textContent.trim())).replace(
-                /(komik|comic)\s*/gi,
-                ""
-              );
+              if (similiarTitle) {
+                payload.name = similiarTitle;
+              } else {
+                await page.waitForSelector(website.elements.title);
+                payload.name = (await page.$eval(website.elements.title, (element) => element.textContent.trim())).replace(
+                  /(komik|comic)\s*/gi,
+                  ""
+                );
+              }
+
               logger.info(`comic-name: Done!`);
 
               // fetch description
