@@ -59,9 +59,13 @@ export const downloadFile = async (targetDirectory, filename, url) => {
       resolve(true);
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        reject(new Error(`💔 Broken file detected ${url}`));
+        const customError = new Error(`💔 Broken file detected ${url}`);
+        customError.isCritical = true;
+        reject(customError);
       } else {
-        reject(new Error(`${error} ${url}`));
+        const customError = new Error(`${error} ${url}`);
+        customError.isCritical = true;
+        reject(customError);
       }
     }
   });

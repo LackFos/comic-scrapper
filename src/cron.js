@@ -4,16 +4,31 @@ import dotenv from "dotenv";
 import pLimit from "p-limit";
 import inquirer from "inquirer";
 import UserAgent from "user-agents";
-import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
-import { delay, downloadFile, logger, scrapper } from "./libs/utils.js";
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
+
 import connectToDatabase from "./connectToDatabase.js";
-import { collection, getDocs, query, where } from "firebase/firestore";
+
+import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
+
+import { delay, downloadFile, logger, scrapper } from "./libs/utils.js";
 
 dotenv.config();
 const limit = pLimit(5);
 
 (async () => {
   const db = await connectToDatabase();
+
+  let failedJobs = [];
+
+  onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
+    const data = snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      .filter((job) => job.onRetry === false);
+    failedJobs = data;
+  });
 
   const { website } = await inquirer.prompt([
     {
@@ -35,7 +50,7 @@ const limit = pLimit(5);
     for (const website of websiteData) {
       logger.info("Launching browser");
 
-      const browser = await scrapper.launch({ headless: true });
+      const browser = await scrapper.launch({ headless: false });
       const page = await browser.newPage();
 
       const userAgent = new UserAgent();
@@ -71,6 +86,7 @@ const limit = pLimit(5);
         page.goto(title.link, { timeout: 0 });
 
         let comicId = null;
+        let comicTitle = null;
         let similiarTitle = null;
         let availableChapters = [];
 
@@ -203,11 +219,12 @@ const limit = pLimit(5);
               });
 
               comicId = response.data.payload.id;
+              comicTitle = response.data.payload.name;
               logger.info(`✅ Comic created successfuly`);
             } catch (error) {
               logger.error(`⚠️ Failed to create comic : ${error.message}`);
               logger.error(error);
-              continue;
+              continue; // skip to next title
             } finally {
               fs.rmSync("./src/temp", { recursive: true, force: true });
             }
@@ -243,11 +260,75 @@ const limit = pLimit(5);
           return !availableChapters.includes(number.value);
         });
 
-        for (const chapter of chaptersToScrape) {
+        while (chaptersToScrape.length > 0 || failedJobs.length > 0) {
+          const failedJob = failedJobs[0];
+          const isPerfomingFailedJob = Boolean(failedJob);
+          let failedJobWebsite = isPerfomingFailedJob ? WEBSITES[failedJob.website] : null;
+
+          let chapter = isPerfomingFailedJob ? { link: failedJob.link, value: failedJob.value } : chaptersToScrape.shift();
+
+          // update the onRetry status if we performed a failed job
+          if (isPerfomingFailedJob) {
+            const failedJobDocRef = doc(db, "failed-jobs", failedJob.id);
+
+            await updateDoc(failedJobDocRef, {
+              onRetry: true,
+            });
+
+            if (failedJob.isCritical) {
+              failedJobWebsite = WEBSITES[failedJobWebsite.alternative];
+
+              page.goto(`${failedJobWebsite.search}${failedJob.title}`, { timeout: 0 });
+
+              await page.waitForSelector(failedJobWebsite.elements.listTitle.parent);
+
+              const alternativeComicLink = await page.$eval(
+                failedJobWebsite.elements.listTitle.parent,
+                (element, failedJobWebsite) => element.querySelector(failedJobWebsite.elements.listTitle.link).href,
+                failedJobWebsite
+              );
+
+              page.goto(alternativeComicLink, { timeout: 0 });
+
+              await page.waitForSelector(failedJobWebsite.elements.chapter.parent);
+
+              try {
+                const alternativeChapterLink = await page.$$eval(
+                  failedJobWebsite.elements.chapter.parent,
+                  (elements, failedJobWebsite, failedJob) =>
+                    elements
+                      .filter(
+                        (element) =>
+                          Number(
+                            element
+                              .querySelector(failedJobWebsite.elements.chapter.text)
+                              .textContent.trim()
+                              .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0
+                          ) === failedJob.value
+                      )[0]
+                      .querySelector(failedJobWebsite.elements.chapter.link).href,
+                  failedJobWebsite,
+                  failedJob
+                );
+
+                chapter.link = alternativeChapterLink;
+              } catch (error) {
+                logger.error(`⚠️ Alternative chapter link not found : ${failedJob.title} ${failedJob.link}`);
+              }
+            }
+
+            logger.info(`[interupted] 😇 Failed job exists!`);
+          }
+
           try {
             fs.mkdirSync("./src/temp");
 
-            website.chapterDelay && (await delay(website.chapterDelay));
+            if (isPerfomingFailedJob) {
+              failedJobWebsite.chapterDelay && (await delay(failedJobWebsite.chapterDelay));
+            } else {
+              website.chapterDelay && (await delay(website.chapterDelay));
+            }
+
             const startTime = Date.now();
 
             logger.info(`📢 Opening chapter page: ${chapter.link}`);
@@ -255,8 +336,14 @@ const limit = pLimit(5);
 
             logger.info(`Downloading images for chapter ${chapter.value}`);
 
-            await page.waitForSelector(website.elements.chapter.image, { timeout: 0 });
-            const images = await page.$$eval(website.elements.chapter.image, (images) => images.map((image) => image.src));
+            await page.waitForSelector(isPerfomingFailedJob ? failedJobWebsite.elements.chapter.image : website.elements.chapter.image, {
+              timeout: 0,
+            });
+
+            const images = await page.$$eval(
+              isPerfomingFailedJob ? failedJobWebsite.elements.chapter.image : website.elements.chapter.image,
+              (images) => images.map((image) => image.src)
+            );
 
             const downloadPromises = images.map((url) =>
               limit(async () => {
@@ -275,63 +362,65 @@ const limit = pLimit(5);
             const files = fs.readdirSync("./src/temp");
 
             const payload = {
-              comic_id: comicId,
+              comic_id: isPerfomingFailedJob ? failedJob.comicId : comicId,
               number: chapter.value,
               name: `Chapter ${chapter.value}`,
               images: files.map((file) => fs.createReadStream(`./src/temp/${file}`)),
             };
 
-            let delayTime = 1000;
-            let attempts = 1;
+            logger.info(`Uploading chapter ${chapter.value}`);
 
-            while (true) {
-              try {
-                logger.info(`Uploading chapter ${chapter.value} attempt: ${attempts}`);
+            await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
+              headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
+            });
 
-                await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
-                  headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
-                });
+            logger.info(`🎉 Chapter ${chapter.value} processed in ${(Date.now() - startTime) / 1000} seconds`);
 
-                break;
-              } catch (error) {
-                if (error.response && error.response.status === 502) {
-                  logger.warn(`⚠️ 502 Error: Retrying due to server error...`);
-                } else if (error.code === "ECONNABORTED" || error.code === "ECONNRESET") {
-                  logger.warn(`⚠️ Timeout Error: Retrying due to connection timeout...`);
-                } else {
-                  console.log(error);
-                  logger.error(`⚠️ Failed to create chapter: ${error.message}`);
-                  break;
-                }
-                await delay(delayTime);
+            if (isPerfomingFailedJob) {
+              const failedJobDocRef = doc(db, "failed-jobs", failedJob.id);
+              await deleteDoc(failedJobDocRef);
+            }
+          } catch (error) {
+            if (isPerfomingFailedJob) {
+              const failedJobDocRef = doc(db, "failed-jobs", failedJob.id);
 
-                delayTime *= 2;
-                attempts++;
+              await updateDoc(failedJobDocRef, {
+                onRetry: false,
+              });
+            } else {
+              if (error.critical || error.response?.status !== 422) {
+                const failedJobRef = collection(db, "failed-jobs");
+                const q = query(failedJobRef, where("comicId", "==", comicId), where("value", "==", chapter.value));
+                const querySnapshot = await getDocs(q);
+                const isFailedJobExists = querySnapshot.docs.length > 0;
 
-                if (attempts >= 2) {
-                  throw new Error("Maximum number of attempts reached");
+                if (!isFailedJobExists) {
+                  await addDoc(collection(db, "failed-jobs"), {
+                    website: website.domain,
+                    comicId: comicId,
+                    title: comicTitle,
+                    link: chapter.link,
+                    value: chapter.value,
+                    onRetry: false,
+                    isCritical: error.isCritical ?? false,
+                  });
                 }
               }
             }
 
-            const endTime = Date.now();
-            logger.info(`🎉 Chapter ${chapter.value} processed in ${(endTime - startTime) / 1000} seconds`);
-          } catch (error) {
-            logger.error(`⚠️ Failed to process chapter ${chapter.link}, ${error.message}`);
-            continue;
+            logger.error(`⚠️ Failed to create chapter ${chapter.link}, ${error.message}`);
+            console.log(error);
           } finally {
             fs.rmSync("./src/temp", { recursive: true, force: true });
           }
         }
       }
 
-      await browser.close();
+      startScrapping();
     }
   }
 
   startScrapping();
-
-  // cron.schedule("0 */3 * * *", startScrapping);
 })();
 
 process.on("unhandledRejection", (reason, promise) => {
