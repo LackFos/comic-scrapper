@@ -1,5 +1,7 @@
 export const WEBSITES = {
   "shinigami05.com": {
+    domain: "shinigami05.com",
+    alternative: "komikindo.lol",
     comicDelay: 8000,
     chapterDelay: 4000,
     default: "https://shinigami05.com",
@@ -33,6 +35,8 @@ export const WEBSITES = {
     },
   },
   "komiku.id": {
+    domain: "komiku.id",
+    alternative: "komikindo.lol",
     default: "https://komiku.id/pustaka",
     search: "https://komiku.id/?post_type=manga&s=",
     elements: {
@@ -57,6 +61,8 @@ export const WEBSITES = {
     },
   },
   "komiku.com": {
+    domain: "komiku.com",
+    alternative: "komikindo.lol",
     default: "https://komiku.com/manga/?order=update",
     search: "https://komiku.com/?s=",
     elements: {
@@ -81,6 +87,8 @@ export const WEBSITES = {
     },
   },
   "komikindo.lol": {
+    domain: "komikindo.lol",
+    alternative: "komiku.com",
     default: "https://komikindo.lol/komik-terbaru/",
     search: "https://komikindo.lol/?s=",
     elements: {
