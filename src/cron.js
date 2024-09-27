@@ -285,7 +285,7 @@ const limit = pLimit(5);
                 delayTime *= 2;
                 attempts++;
 
-                if (attempts >= 5) {
+                if (attempts >= 2) {
                   throw new Error("Maximum number of attempts reached");
                 }
               }
