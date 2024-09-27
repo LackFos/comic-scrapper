@@ -216,6 +216,7 @@ const limit = pLimit(5);
         });
 
         comicId = response.data.payload.id;
+        comicTitle = response.data.payload.name;
         logger.info(`✅ Comic created successfuly`);
       } catch (error) {
         logger.error(`⚠️ Failed to create comic : ${error.message}`);

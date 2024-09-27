@@ -118,6 +118,7 @@ const limit = pLimit(5);
           );
 
           comicId = response.data.payload.id;
+          comicTitle = response.data.payload.name;
           availableChapters = response.data.payload.chapters.map((chapter) => chapter.number);
           logger.info(`Comic ${similiarTitle ? similiarTitle : comicName} found. ID: ${comicId}`);
         } catch (error) {
