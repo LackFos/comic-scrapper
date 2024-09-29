@@ -41,6 +41,8 @@ const limit = pLimit(5);
 
   const websiteData = website === "All" ? Object.values(WEBSITES) : [WEBSITES[website]];
 
+  const browser = await scrapper.launch({ headless: true });
+
   async function startScrapping() {
     // Reset the temp folder
     if (fs.existsSync("./src/temp")) {
@@ -50,7 +52,6 @@ const limit = pLimit(5);
     for (const website of websiteData) {
       logger.info("Launching browser");
 
-      const browser = await scrapper.launch({ headless: false });
       const page = await browser.newPage();
 
       const userAgent = new UserAgent();
