@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import pLimit from "p-limit";
 import inquirer from "inquirer";
 import UserAgent from "user-agents";
+import cron from "node-cron";
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 
 import connectToDatabase from "./connectToDatabase.js";
@@ -16,6 +17,8 @@ dotenv.config();
 const limit = pLimit(5);
 
 (async () => {
+  let onScrapping = false
+
   const db = await connectToDatabase();
 
   let failedJobs = [];
@@ -44,6 +47,8 @@ const limit = pLimit(5);
   const browser = await scrapper.launch({ headless: true, executablePath: "/usr/bin/chromium", args: ["--no-sandbox"] });
 
   async function startScrapping() {
+    onScrapping = true
+
     // Reset the temp folder
     if (fs.existsSync("./src/temp")) {
       fs.rmSync("./src/temp", { recursive: true, force: true });
@@ -418,11 +423,17 @@ const limit = pLimit(5);
         }
       }
 
-      startScrapping();
+      onScrapping = false;
     }
   }
 
-  startScrapping();
+  startScrapping()
+
+  cron.schedule("0 */2 * * *", () => {
+    if(!onScrapping) {
+      startScrapping();
+    }
+  });
 })();
 
 process.on("unhandledRejection", (reason, promise) => {
