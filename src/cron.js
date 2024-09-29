@@ -41,7 +41,7 @@ const limit = pLimit(5);
 
   const websiteData = website === "All" ? Object.values(WEBSITES) : [WEBSITES[website]];
 
-  const browser = await scrapper.launch({ headless: true });
+  const browser = await scrapper.launch({ headless: true, executablePath: "/usr/bin/chromium", args: ["--no-sandbox"] });
 
   async function startScrapping() {
     // Reset the temp folder
@@ -52,7 +52,6 @@ const limit = pLimit(5);
     for (const website of websiteData) {
       logger.info("Launching browser");
 
-      const browser = await scrapper.launch({ headless: true, executablePath: "/usr/bin/chromium", args: ["--no-sandbox"] });
       const page = await browser.newPage();
 
       const userAgent = new UserAgent();
