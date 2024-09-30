@@ -99,7 +99,7 @@ export const WEBSITES = {
       },
       title: ".infoanime h1",
       cover: ".thumb img",
-      type: ".spe span:nth-of-type(7) > a",
+      type: ".spe span:nth-of-type(8) > a",
       author: ".spe span:nth-of-type(3)",
       status: ".spe span:nth-of-type(2)",
       description: ".desc p",
