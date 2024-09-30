@@ -248,6 +248,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             if (failedJob.isCritical) {
               logger.info(`[${deviceName}] 🚑 The failed job was CRITICAL!`);
               alternativeWebsite = WEBSITES[alternativeWebsite.alternative];
+              console.log(alternativeWebsite);
 
               try {
                 logger.info(`[${deviceName}] Redirecting to alternative website`);
@@ -327,7 +328,15 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           try {
             const downloadPromises = imagesUrl.map((url, index) => limit(() => downloadFile("./src/temp", index, url)));
 
-            await Promise.all(downloadPromises);
+            const results = await Promise.allSettled(downloadPromises);
+
+            results.forEach((result) => {
+              if (result.status === "rejected") {
+                const customError = new Error(result.reason);
+                customError.isCritical = result.reason.isCritical;
+                throw customError;
+              }
+            });
 
             const files = fs.readdirSync("./src/temp").sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
             const imagesBuffer = files.map((file) => fs.createReadStream(`./src/temp/${file}`));
