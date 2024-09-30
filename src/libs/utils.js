@@ -74,6 +74,7 @@ export const downloadFile = async (targetDirectory, filename, url) => {
         customError.isCritical = true;
         reject(customError);
       } else {
+        console.log(error);
         const customError = new Error(`${error} ${url}`);
         customError.isCritical = true;
         reject(customError);

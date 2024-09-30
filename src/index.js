@@ -23,7 +23,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
       id: doc.id,
       ...doc.data(),
     }))
-    .filter((job) => job.onRetry === false || job.aborted === false);
+    .filter((job) => job.onRetry === false && job.aborted === false);
 });
 
 // Main loop
