@@ -15,7 +15,6 @@ export const scrapper = puppeteer;
 
 const logtail = new Logtail(process.env.LOGTAIL_SOURCE_TOKEN);
 export const logger = winston.createLogger({
-  level: "info",
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.printf(({ timestamp, level, message }) => `${timestamp} [${level.toUpperCase()}] ${message}`)
@@ -39,13 +38,24 @@ export const delay = (ms) => {
 export const downloadFile = async (targetDirectory, filename, url) => {
   return new Promise(async (resolve, reject) => {
     try {
+      const fileExtension = url.match(/\.\w+$/)?.[0];
+
+      if (!fileExtension) {
+        const customError = new Error(`🥲 Invalid file extension ${url}`);
+        customError.isCritical = true;
+        reject(customError);
+      }
+
       const response = await axios.get(url, { responseType: "arraybuffer" });
 
       if (!response.headers["content-type"].startsWith("image")) {
-        resolve(true);
+        const customError = new Error(`🥲 Invalid content type ${url}`);
+        customError.isCritical = true;
+        reject(customError);
       }
 
       const metadata = await sharp(response.data).metadata();
+
       const isImageToBigForWebp = metadata.width > 16383 || metadata.height > 16383;
 
       const compressedImage = isImageToBigForWebp
@@ -54,8 +64,9 @@ export const downloadFile = async (targetDirectory, filename, url) => {
 
       const outputFilename = `${filename}.${isImageToBigForWebp ? "jpeg" : "webp"}`;
       fs.writeFileSync(`${targetDirectory}/${outputFilename}`, compressedImage);
+      console.log(outputFilename);
 
-      logger.info(`Success to download: ${url}`);
+      logger.info(`[${process.env.DEVICE_NAME}] Success to download: ${url}`);
       resolve(true);
     } catch (error) {
       if (error.response && error.response.status === 404) {
