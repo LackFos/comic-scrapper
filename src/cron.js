@@ -21,13 +21,12 @@ let onScrapping = false;
 let failedJobs = [];
 
 onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
-  const data = snapshot.docs
+  failedJobs = snapshot.docs
     .map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }))
-    .filter((job) => job.onRetry === false || job.aborted === true);
-  failedJobs = data;
+    .filter((job) => job.onRetry === false && job.aborted === false);
 });
 
 // Main loop
@@ -258,7 +257,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
                 let alternativeComicLink = null;
 
                 try {
-                  const alternativeComicLink = await page.$eval(
+                  alternativeComicLink = await page.$eval(
                     alternativeWebsite.elements.listTitle.parent,
                     (element, alternativeWebsite) => element.querySelector(alternativeWebsite.elements.listTitle.link).href,
                     alternativeWebsite
