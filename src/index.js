@@ -335,7 +335,13 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
     try {
       const downloadPromises = imagesUrl.map((url, index) => limit(() => downloadFile("./src/temp", index, url)));
 
-      await Promise.all(downloadPromises);
+      const results = await Promise.allSettled(downloadPromises);
+
+      results.forEach((result) => {
+        if (result.status === "rejected") {
+          throw new Error(result.reason);
+        }
+      });
 
       const files = fs.readdirSync("./src/temp").sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
 
