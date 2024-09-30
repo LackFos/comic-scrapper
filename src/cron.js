@@ -186,7 +186,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             }
 
             try {
-              const createComicResponse = await axios.post(`${process.env.API_ENDPOINT}/api/comics`, createComicResponse, {
+              const createComicResponse = await axios.post(`${process.env.API_ENDPOINT}/api/comics`, createComicPayload, {
                 headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data" },
               });
 
