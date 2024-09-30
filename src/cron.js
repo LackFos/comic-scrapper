@@ -85,7 +85,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         website.comicDelay && (await delay(website.comicDelay));
 
         console.log("\n");
-        logger.info(`[${deviceName}] 📢 Opening comic "${selectedComic.text}": ${selectedComic.link}`);
+        logger.info(`[${deviceName}] 📢 Opening comic "${title.text}": ${title.link}`);
         page.goto(title.link, { timeout: 0 });
 
         let comicId = null;
@@ -227,8 +227,6 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           )
         ).sort((a, b) => a.value - b.value);
 
-        console.log(availableChapters);
-
         const chaptersToScrape = availableChapters.filter((number) => {
           return !comicChapters.includes(number.value);
         });
@@ -305,7 +303,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           logger.info(`[${deviceName}] 📢 Opening chapter page: ${chapterToScrape.link}`);
           page.goto(chapterToScrape.link, { timeout: 0 });
 
-          logger.info(`[${deviceName}] Downloading images for chapter ${chapterToScrape.text}`);
+          logger.info(`[${deviceName}] Downloading images for chapter ${chapterToScrape.value}`);
 
           await page.waitForSelector(isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image, {
             timeout: 0,
@@ -330,12 +328,12 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
             const createChapterPayload = {
               comic_id: comicId,
-              number: chapterToScrape.text,
-              name: `Chapter ${chapterToScrape.text}`,
+              number: chapterToScrape.value,
+              name: `Chapter ${chapterToScrape.value}`,
               images: imagesBuffer,
             };
 
-            logger.info(`[${deviceName}] Uploading ${comicTitle} (${chapterToScrape.text})`);
+            logger.info(`[${deviceName}] Uploading ${comicTitle} (${chapterToScrape.value})`);
 
             await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, createChapterPayload, {
               headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
@@ -346,13 +344,16 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
               await deleteDoc(failedJobDocRef);
             }
 
-            logger.info(`[${deviceName}] 🎉 Chapter ${chapterToScrape.text} processed in ${(Date.now() - startTime) / 1000} seconds`);
+            logger.info(`[${deviceName}] 🎉 Chapter ${chapterToScrape.value} processed in ${(Date.now() - startTime) / 1000} seconds`);
           } catch (error) {
             logger.error(`[${deviceName}] ⚠️ Failed to create chapter ${chapterToScrape.link}, ${error.message}`);
             console.log(error);
 
             if (isPerfomingFailedJob) {
-              if (failedJob.isCritical) {
+              if (error.response && Boolean(error.response.data?.errors?.number)) {
+                await deleteDoc(doc(db, "failed-jobs", failedJob.id));
+                continue;
+              } else if (failedJob.isCritical) {
                 await updateDoc(doc(db, "failed-jobs", failedJob.id), { aborted: true });
               } else {
                 await updateDoc(doc(db, "failed-jobs", failedJob.id), { onRetry: false });
@@ -362,7 +363,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
                 continue;
               }
 
-              const q = query(collection(db, "failed-jobs"), where("comicId", "==", comicId), where("value", "==", chapterToScrape.text));
+              const q = query(collection(db, "failed-jobs"), where("comicId", "==", comicId), where("value", "==", chapterToScrape.value));
               const querySnapshot = await getDocs(q);
               const isFailedJobExists = querySnapshot.docs.length > 0;
 
@@ -372,9 +373,12 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
                   comicId: comicId,
                   title: comicTitle,
                   link: chapterToScrape.link,
-                  value: chapterToScrape.text,
+                  value: chapterToScrape.value,
                   onRetry: false,
-                  isCritical: error.isCritical || Object.keys(error.response.data.errors).some((key) => Boolean(key.match(/image/g)[0])),
+                  isCritical:
+                    error.isCritical ||
+                    (Boolean(error.response?.data?.errors) &&
+                      Object.keys(error.response?.data?.errors).some((key) => Boolean(key.match(/image/g)[0]))),
                   aborted: false,
                 });
               }

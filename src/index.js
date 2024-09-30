@@ -371,7 +371,10 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
       console.log(error);
 
       if (isPerfomingFailedJob) {
-        if (failedJob.isCritical) {
+        if (error.response && Boolean(error.response.data?.errors?.number)) {
+          await deleteDoc(doc(db, "failed-jobs", failedJob.id));
+          continue;
+        } else if (failedJob.isCritical) {
           await updateDoc(doc(db, "failed-jobs", failedJob.id), { aborted: true });
         } else {
           await updateDoc(doc(db, "failed-jobs", failedJob.id), { onRetry: false });
@@ -393,7 +396,10 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             link: chapterToScrape.link,
             value: chapterToScrape.text,
             onRetry: false,
-            isCritical: error.isCritical || Object.keys(error.response.data.errors).some((key) => Boolean(key.match(/image/g)[0])),
+            isCritical:
+              error.isCritical ||
+              (Boolean(error.response?.data?.errors) &&
+                Object.keys(error.response?.data?.errors).some((key) => Boolean(key.match(/image/g)[0]))),
             aborted: false,
           });
         }
