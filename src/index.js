@@ -269,38 +269,50 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         alternativeWebsite = WEBSITES[alternativeWebsite.alternative];
 
         try {
+          logger.info(`[${deviceName}] Redirecting to alternative website`);
           page.goto(`${alternativeWebsite.search}${failedJob.title}`, { timeout: 0 });
           await page.waitForSelector(alternativeWebsite.elements.listTitle.parent, { timeout: 0 });
+          console.log(`${alternativeWebsite.search}${failedJob.title}`);
 
-          const alternativeComicLink = await page.$eval(
-            alternativeWebsite.elements.listTitle.parent,
-            (element, alternativeWebsite) => element.querySelector(alternativeWebsite.elements.listTitle.link).href,
-            alternativeWebsite
-          );
+          let alternativeComicLink = null;
 
+          try {
+            alternativeComicLink = await page.$eval(
+              alternativeWebsite.elements.listTitle.parent,
+              (element, alternativeWebsite) => element.querySelector(alternativeWebsite.elements.listTitle.link).href,
+              alternativeWebsite
+            );
+          } catch (error) {
+            throw new Error(`Comic not found in alternative website: ${error.message}`);
+          }
           if (!alternativeComicLink) throw new Error(`Comic not found in alternative website: ${alternativeComicLink}`);
 
           page.goto(alternativeComicLink, { timeout: 0 });
-          await page.waitForSelector(alternativeWebsite.elements.chapter.parent, { timeout: 0 });
+          await page.waitForSelector(alternativeWebsite.elements.chapter.parent);
 
-          const alternativeChapterLink = await page.$$eval(
-            alternativeWebsite.elements.chapter.parent,
-            (elements, alternativeWebsite, failedJob) =>
-              elements
-                .filter(
-                  (element) =>
-                    Number(
-                      element
-                        .querySelector(alternativeWebsite.elements.chapter.text)
-                        .textContent.trim()
-                        .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0
-                    ) === failedJob.value
-                )[0]
-                .querySelector(alternativeWebsite.elements.chapter.link).href,
-            alternativeWebsite,
-            failedJob
-          );
+          let alternativeChapterLink = null;
 
+          try {
+            alternativeChapterLink = await page.$$eval(
+              alternativeWebsite.elements.chapter.parent,
+              (elements, alternativeWebsite, failedJob) =>
+                elements
+                  .filter(
+                    (element) =>
+                      Number(
+                        element
+                          .querySelector(alternativeWebsite.elements.chapter.text)
+                          .textContent.trim()
+                          .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0
+                      ) === failedJob.value
+                  )[0]
+                  .querySelector(alternativeWebsite.elements.chapter.link).href,
+              alternativeWebsite,
+              failedJob
+            );
+          } catch (error) {
+            throw new Error(`Chapter not found in alternative website: ${error.message}`);
+          }
           if (!alternativeChapterLink) throw new Error(`Chapter not found in alternative website: ${alternativeChapterLink}`);
 
           chapterToScrape.link = alternativeChapterLink;
@@ -339,7 +351,9 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
       results.forEach((result) => {
         if (result.status === "rejected") {
-          throw new Error(result.reason);
+          const customError = new Error(result.reason);
+          customError.isCritical = result.reason.isCritical;
+          throw customError;
         }
       });
 
@@ -400,7 +414,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             comicId: comicId,
             title: comicTitle,
             link: chapterToScrape.link,
-            value: chapterToScrape.text,
+            value: Number(chapterToScrape.text),
             onRetry: false,
             isCritical:
               error.isCritical ||
