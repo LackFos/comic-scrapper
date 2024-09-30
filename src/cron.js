@@ -251,6 +251,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
               alternativeWebsite = WEBSITES[alternativeWebsite.alternative];
 
               try {
+                logger.info(`[${deviceName}] Redirecting to alternative website: ${alternativeWebsite.search}${failedJob.title}`);
                 page.goto(`${alternativeWebsite.search}${failedJob.title}`, { timeout: 0 });
                 await page.waitForSelector(alternativeWebsite.elements.listTitle.parent, { timeout: 0 });
 
@@ -347,7 +348,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             logger.info(`[${deviceName}] 🎉 Chapter ${chapterToScrape.value} processed in ${(Date.now() - startTime) / 1000} seconds`);
           } catch (error) {
             logger.error(`[${deviceName}] ⚠️ Failed to create chapter ${chapterToScrape.link}, ${error.message}`);
-            console.log(error);
+            logger.error(`[${deviceName}] ${error}`);
 
             if (isPerfomingFailedJob) {
               if (error.response && Boolean(error.response.data?.errors?.number)) {
