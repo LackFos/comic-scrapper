@@ -405,7 +405,7 @@ const limit = pLimit(5);
               }
             } else {
               if (error.isCritical || error.response?.status !== 422) {
-                if (!error.response?.data?.errors?.images) {
+                if (error.response && !error.response?.data?.errors?.images) {
                   logger.info(`[error-422] ${error.response?.data}`);
                   continue;
                 }
