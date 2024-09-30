@@ -25,7 +25,7 @@ const limit = pLimit(5);
         id: doc.id,
         ...doc.data(),
       }))
-      .filter((job) => job.onRetry === false);
+      .filter((job) => job.onRetry === false || job.aborted === false);
     failedJobs = data;
   });
 
@@ -56,7 +56,7 @@ const limit = pLimit(5);
   const websiteData = WEBSITES[website];
   const websiteUrl = keyword ? `${websiteData.search}${keyword}` : websiteData.default;
 
-  logger.info(`Opening page: ${websiteUrl}`);
+  logger.info(`Opening website: ${websiteUrl}`);
   page.goto(websiteUrl, { timeout: 0 });
 
   logger.info(`Fetching titles...`);
@@ -74,19 +74,26 @@ const limit = pLimit(5);
     titleElement
   );
 
-  logger.info(`${titles.length} comics found.`);
-
-  const { selectedTitle } = await inquirer.prompt([
+  const { selectedTitle, scrapMode } = await inquirer.prompt([
     {
       name: "selectedTitle",
       type: "rawlist",
       message: "Pilih komik:",
+
       choices: titles.map((title) => title.text),
+    },
+    {
+      name: "scrapMode",
+      type: "list",
+      message: "Pilih mode:",
+      choices: ["Auto", "Single"],
     },
   ]);
 
   const selectedComic = titles.find((comic) => comic.text === selectedTitle);
   websiteData.comicDelay && (await delay(websiteData.comicDelay));
+
+  logger.info(`📢 Opening comic (${selectedComic.text}): ${selectedComic.link}`);
   page.goto(selectedComic.link, { timeout: 0 });
 
   let comicId = null;
@@ -95,31 +102,33 @@ const limit = pLimit(5);
   let availableChapters = [];
 
   try {
-    logger.info(`📢 Opening comic page: ${selectedComic.link}`);
     await page.waitForSelector(websiteData.elements.title);
-    let title = (await page.$eval(websiteData.elements.title, (element) => element.textContent.trim())).replace(/(komik|comic)\s*/gi, "");
+    let comicName = (await page.$eval(websiteData.elements.title, (element) => element.textContent.trim())).replace(
+      /(komik|comic)\s*/gi,
+      ""
+    );
 
-    logger.info(`Checking if comic ${title} exists in the API...`);
+    logger.info(`Checking if comic ${comicName} exists in the API...`);
 
     const similiarTitleRef = collection(db, "similiar-title");
 
-    const q = query(similiarTitleRef, where("raw", "==", title.toLocaleLowerCase()));
+    const q = query(similiarTitleRef, where("raw", "==", comicName.toLocaleLowerCase()));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.size > 0) {
       const data = querySnapshot.docs[0].data();
-      logger.info(`[SIMILAR-TITLE-FOUND] ${title} exists in similar titles database. using ${data.similiarTitle} instead`);
+      logger.info(`[SIMILAR-TITLE-FOUND] ${comicName} exists in similar titles database. using ${data.similiarTitle} instead`);
       similiarTitle = data.similiarTitle;
     }
 
-    const response = await axios.get(`${process.env.API_ENDPOINT}/api/comics/find-one/?name=${similiarTitle ? similiarTitle : title}`, {
+    const response = await axios.get(`${process.env.API_ENDPOINT}/api/comics/find-one/?name=${similiarTitle ? similiarTitle : comicName}`, {
       headers: { Authorization: process.env.ACCESS_TOKEN },
     });
 
     comicId = response.data.payload.id;
     comicTitle = response.data.payload.name;
     availableChapters = response.data.payload.chapters.map((chapter) => chapter.number);
-    logger.info(`Comic ${similiarTitle ? similiarTitle : title} found. ID: ${comicId}`);
+    logger.info(`Comic ${comicTitle} found. ID: ${comicId}`);
   } catch (error) {
     if (error.response?.status === 404) {
       logger.info(`Comic ${selectedComic.text} not found. Fetching metadata...`);
@@ -136,7 +145,6 @@ const limit = pLimit(5);
       };
 
       try {
-        // fetch title
         if (similiarTitle) {
           payload.name = similiarTitle;
         } else {
@@ -146,40 +154,33 @@ const limit = pLimit(5);
             ""
           );
         }
-
         logger.info(`comic-name: Done!`);
 
-        // fetch description
         await page.waitForSelector(websiteData.elements.description);
         payload.description = await page.$eval(websiteData.elements.description, (element) => element.textContent.trim());
         logger.info(`comic-description: Done!`);
 
-        // fetch author
         await page.waitForSelector(websiteData.elements.author);
         payload.author = (await page.$eval(websiteData.elements.author, (element) => element.textContent.trim()))
           .replace(/(pengarang|author)\s*/gi, "")
           .trim();
         logger.info(`comic-author: Done!`);
 
-        // fetch type_id
         await page.waitForSelector(websiteData.elements.type);
         const type = await page.$eval(websiteData.elements.type, (element) => element.textContent.trim());
         payload.type_id = TYPES[type] ?? undefined;
         logger.info(`comic-type: Done!`);
 
-        // fetch status_id
         await page.waitForSelector(websiteData.elements.status);
         const status = (await page.$eval(websiteData.elements.status, (element) => element.textContent.trim())).replace(/status\s*/gi, "");
         payload.status_id = STATUSES[status] ?? STATUSES["ongoing"];
         logger.info(`comic-status: Done!`);
 
-        // fetch genres
         await page.waitForSelector(websiteData.elements.genre);
         const genres = await page.$$eval(websiteData.elements.genre, (elements) => elements.map((element) => element.textContent.trim()));
         payload.genres = genres.map((genre) => GENRES[genre]).filter(Boolean);
         logger.info(`comic-genres: Done!`);
 
-        // fetch rating
         const mangadexPage = await browser.newPage();
 
         try {
@@ -189,7 +190,7 @@ const limit = pLimit(5);
           await mangadexPage.locator(".placeholder-current").fill(payload.name);
           await mangadexPage.locator(".manga-card-dense").click();
 
-          await mangadexPage.waitForSelector("span.text-primary");
+          await mangadexPage.waitForSelector("span.text-primary", { timeout: 0 });
           payload.rating = await mangadexPage.$eval("span.text-primary", (element) => element.textContent.trim());
           logger.info(`comic-rating: Done!`);
         } catch (error) {
@@ -233,32 +234,22 @@ const limit = pLimit(5);
     }
   }
 
-  const { scrapMode } = await inquirer.prompt([
-    {
-      name: "scrapMode",
-      type: "list",
-      message: "Pilih mode:",
-      choices: ["Auto", "Single"],
-    },
-  ]);
-
-  // 8) Fetch the list of chapters available for the selected comic
   await page.waitForSelector(websiteData.elements.chapter.parent);
   logger.info(`Fetching Chapters`);
 
-  let chapters = await page.$$eval(
-    websiteData.elements.chapter.parent,
-    (elements, websiteData) =>
-      elements.map((element) => ({
-        text: element.querySelector(websiteData.elements.chapter.text).textContent.trim().replace(/\n/g, ""),
-        link: element.querySelector(websiteData.elements.chapter.link).href,
-      })),
-    websiteData
-  );
-  chapters = chapters.sort(
+  let chapters = (
+    await page.$$eval(
+      websiteData.elements.chapter.parent,
+      (elements, websiteData) =>
+        elements.map((element) => ({
+          text: element.querySelector(websiteData.elements.chapter.text).textContent.trim().replace(/\n/g, ""),
+          link: element.querySelector(websiteData.elements.chapter.link).href,
+        })),
+      websiteData
+    )
+  ).sort(
     (a, b) => Number(a.text.match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0) - Number(b.text.match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0)
   );
-
   let selectedChapter = [];
 
   if (scrapMode === "Single") {
@@ -281,7 +272,7 @@ const limit = pLimit(5);
   while (selectedChapter.length > 0 || failedJobs.length > 0) {
     const failedJob = failedJobs[0];
     const isPerfomingFailedJob = Boolean(failedJob);
-    let failedJobWebsite = isPerfomingFailedJob ? WEBSITES[failedJob.website] : null;
+    let alternativeWebsite = isPerfomingFailedJob ? WEBSITES[failedJob.website] : null;
 
     let chapter = isPerfomingFailedJob ? { link: failedJob.link, text: `Chapter ${failedJob.value}` } : selectedChapter.shift();
     const chapterNumber = Number(chapter.text.match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0);
@@ -294,56 +285,65 @@ const limit = pLimit(5);
         onRetry: true,
       });
 
+      logger.info(`[interupted] 😇 Failed job exists!`);
+
       if (failedJob.isCritical) {
-        failedJobWebsite = WEBSITES[failedJobWebsite.alternative];
-
-        page.goto(`${failedJobWebsite.search}${failedJob.title}`, { timeout: 0 });
-
-        await page.waitForSelector(failedJobWebsite.elements.listTitle.parent);
-
-        const alternativeComicLink = await page.$eval(
-          failedJobWebsite.elements.listTitle.parent,
-          (element, failedJobWebsite) => element.querySelector(failedJobWebsite.elements.listTitle.link).href,
-          failedJobWebsite
-        );
-
-        page.goto(alternativeComicLink, { timeout: 0 });
-
-        await page.waitForSelector(failedJobWebsite.elements.chapter.parent);
-
         try {
+          logger.info(`❗ Failed job is critical, retrying with alternative website`);
+
+          alternativeWebsite = WEBSITES[alternativeWebsite.alternative];
+
+          page.goto(`${alternativeWebsite.search}${failedJob.title}`, { timeout: 0 });
+          await page.waitForSelector(alternativeWebsite.elements.listTitle.parent);
+
+          const alternativeComicLink = await page.$eval(
+            alternativeWebsite.elements.listTitle.parent,
+            (element, alternativeWebsite) => element.querySelector(alternativeWebsite.elements.listTitle.link).href,
+            alternativeWebsite
+          );
+
+          if (!alternativeComicLink) {
+            throw new Error(`Comic not found in alternative website: ${alternativeComicLink}`);
+          }
+
+          page.goto(alternativeComicLink, { timeout: 0 });
+
+          await page.waitForSelector(alternativeWebsite.elements.chapter.parent);
+
           const alternativeChapterLink = await page.$$eval(
-            failedJobWebsite.elements.chapter.parent,
-            (elements, failedJobWebsite, failedJob) =>
+            alternativeWebsite.elements.chapter.parent,
+            (elements, alternativeWebsite, failedJob) =>
               elements
                 .filter(
                   (element) =>
                     Number(
                       element
-                        .querySelector(failedJobWebsite.elements.chapter.text)
+                        .querySelector(alternativeWebsite.elements.chapter.text)
                         .textContent.trim()
                         .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0
                     ) === failedJob.value
                 )[0]
-                .querySelector(failedJobWebsite.elements.chapter.link).href,
-            failedJobWebsite,
+                .querySelector(alternativeWebsite.elements.chapter.link).href,
+            alternativeWebsite,
             failedJob
           );
 
+          if (!alternativeChapterLink) {
+            throw new Error(`Chapter not found in alternative website: ${alternativeChapterLink}`);
+          }
+
           chapter.link = alternativeChapterLink;
         } catch (error) {
-          logger.error(`⚠️ Alternative chapter link not found : ${failedJob.title} ${failedJob.link}`);
+          logger.error(`[critical-job-not-found] : ${error.message}`);
         }
       }
-
-      logger.info(`[interupted] 😇 Failed job exists!`);
     }
 
     try {
       fs.mkdirSync("./src/temp");
 
       if (isPerfomingFailedJob) {
-        failedJobWebsite.chapterDelay && (await delay(failedJobWebsite.chapterDelay));
+        alternativeWebsite.chapterDelay && (await delay(alternativeWebsite.chapterDelay));
       } else {
         websiteData.chapterDelay && (await delay(websiteData.chapterDelay));
       }
@@ -355,12 +355,12 @@ const limit = pLimit(5);
 
       logger.info(`Downloading images for chapter ${chapter.text}`);
 
-      await page.waitForSelector(isPerfomingFailedJob ? failedJobWebsite.elements.chapter.image : websiteData.elements.chapter.image, {
+      await page.waitForSelector(isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : websiteData.elements.chapter.image, {
         timeout: 0,
       });
 
       const images = await page.$$eval(
-        isPerfomingFailedJob ? failedJobWebsite.elements.chapter.image : websiteData.elements.chapter.image,
+        isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : websiteData.elements.chapter.image,
         (images) => images.map((image) => image.src)
       );
 
@@ -387,31 +387,42 @@ const limit = pLimit(5);
         images: files.map((file) => fs.createReadStream(`./src/temp/${file}`)),
       };
 
-      logger.info(`Uploading chapter ${chapterNumber}`);
+      logger.info(`Uploading ${comicTitle} (${chapterNumber})`);
 
       await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, payload, {
         headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
       });
 
-      logger.info(`🎉 Chapter ${chapterNumber} processed in ${(Date.now() - startTime) / 1000} seconds`);
-
       if (isPerfomingFailedJob) {
         const failedJobDocRef = doc(db, "failed-jobs", failedJob.id);
         await deleteDoc(failedJobDocRef);
       }
+
+      logger.info(`🎉 Chapter ${chapterNumber} processed in ${(Date.now() - startTime) / 1000} seconds`);
     } catch (error) {
       if (isPerfomingFailedJob) {
         const failedJobDocRef = doc(db, "failed-jobs", failedJob.id);
 
-        await updateDoc(failedJobDocRef, {
-          onRetry: false,
-        });
+        if (failedJob.isCritical) {
+          await updateDoc(failedJobDocRef, {
+            aborted: true,
+          });
+
+          logger.error(`[critical-job-failed] : ${error.message}`);
+        } else {
+          await updateDoc(failedJobDocRef, {
+            onRetry: false,
+          });
+        }
       } else {
-        if (error.critical || error.response?.status !== 422) {
+        if (error.isCritical || error.response?.status !== 422) {
+          if (!error.response?.data.errors?.images) {
+            logger.info(`[error-422] ${error.response?.data}`);
+            continue;
+          }
+
           const failedJobRef = collection(db, "failed-jobs");
-
           const q = query(failedJobRef, where("comicId", "==", comicId), where("value", "==", chapterNumber));
-
           const querySnapshot = await getDocs(q);
           const isFailedJobExists = querySnapshot.docs.length > 0;
 
@@ -424,6 +435,7 @@ const limit = pLimit(5);
               value: chapterNumber,
               onRetry: false,
               isCritical: error.isCritical ?? false,
+              aborted: false,
             });
           }
         }
