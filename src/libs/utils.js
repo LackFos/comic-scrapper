@@ -44,7 +44,13 @@ export const downloadFile = async (targetDirectory, filename, url) => {
         reject(customError);
       }
 
-      const response = await axios.get(url, { responseType: "arraybuffer" });
+      let response = null;
+
+      try {
+        response = await axios.get(url, { responseType: "arraybuffer" });
+      } catch (error) {
+        throw new Error(`⚠️ Failed to download: ${url}`);
+      }
 
       if (!response.headers["content-type"].startsWith("image")) {
         const customError = new Error(`🥲 Invalid content type ${url}`);
@@ -67,13 +73,16 @@ export const downloadFile = async (targetDirectory, filename, url) => {
       logger.info(`[${process.env.DEVICE_NAME}] Success to download: ${url}`);
       resolve(true);
     } catch (error) {
+      let customError = null;
+
       if (error.response && error.response.status === 404) {
-        const customError = new Error(`💔 Broken file detected ${url}`);
-        customError.isCritical = true;
-        reject(customError);
+        customError = new Error(`💔 Broken file detected ${url}`);
       } else {
-        reject(new Error(`${error} ${url}`));
+        customError = new Error(`${error} ${url}`);
       }
+
+      customError.isCritical = true;
+      reject(customError);
     }
   });
 };

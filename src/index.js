@@ -352,16 +352,13 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
       results.forEach((result) => {
         if (result.status === "rejected") {
           const customError = new Error(result.reason);
-          customError.isCritical = result.reason.isCritical;
+          if (result.reason.isCritical) customError.isCritical = true;
           throw customError;
         }
       });
 
       const files = fs.readdirSync("./src/temp").sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
-
-      const imagesBuffer = files.map((file) => {
-        return fs.createReadStream(`./src/temp/${file}`);
-      });
+      const imagesBuffer = files.map((file) => fs.createReadStream(`./src/temp/${file}`));
 
       if (imagesBuffer.length !== imagesUrl.length) {
         throw new Error(`❗ The downloaded images(${imagesBuffer.length}) doesnt match fetched urls(${imagesUrl.length})`);

@@ -248,7 +248,6 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             if (failedJob.isCritical) {
               logger.info(`[${deviceName}] 🚑 The failed job was CRITICAL!`);
               alternativeWebsite = WEBSITES[alternativeWebsite.alternative];
-              console.log(alternativeWebsite);
 
               try {
                 logger.info(`[${deviceName}] Redirecting to alternative website`);
@@ -333,7 +332,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             results.forEach((result) => {
               if (result.status === "rejected") {
                 const customError = new Error(result.reason);
-                customError.isCritical = result.reason.isCritical;
+                if (result.reason.isCritical) customError.isCritical = true;
                 throw customError;
               }
             });
@@ -366,7 +365,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             logger.info(`[${deviceName}] 🎉 Chapter ${chapterToScrape.value} processed in ${(Date.now() - startTime) / 1000} seconds`);
           } catch (error) {
             logger.error(`[${deviceName}] ⚠️ Failed to create chapter ${chapterToScrape.link}, ${error.message}`);
-            console.log(error);
+            logger.error(`[${deviceName}] ⚠️ ${error}`);
 
             if (isPerfomingFailedJob) {
               if (error.response && Boolean(error.response.data?.errors?.number)) {
@@ -378,7 +377,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
                 await updateDoc(doc(db, "failed-jobs", failedJob.id), { onRetry: false });
               }
             } else {
-              if (error.response && Boolean(error.response.data?.errors.number)) {
+              if (error.response && Boolean(error.response.data?.errors?.number)) {
                 continue;
               }
 
