@@ -450,3 +450,11 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
     }
   });
 })();
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.log("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.log("Uncaught Exception:", error.message, error.stack);
+});
