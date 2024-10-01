@@ -195,6 +195,19 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data" },
         });
 
+        try {
+          axios.post("https://api.indexnow.org/indexnow", {
+            host: "https://komikoi.com",
+            key: "9da618746c5f47a69d45a7bdbdab8dce",
+            keyLocation: "https://komikoi.com/9da618746c5f47a69d45a7bdbdab8dce.txt",
+            urlList: [`https://komikoi.com/komik/${createComicResponse.data.payload.slug}`],
+          });
+
+          logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
+        } catch (error) {
+          logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
+        }
+
         comicId = createComicResponse.data.payload.id;
         comicTitle = createComicResponse.data.payload.name;
         logger.info(`[${deviceName}] ✅ Comic created successfuly`);
@@ -376,9 +389,22 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
       logger.info(`[${deviceName}] Uploading ${comicTitle} (${chapterToScrape.text})`);
 
-      await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, createChapterPayload, {
+      const createChapterResponse = await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, createChapterPayload, {
         headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
       });
+
+      try {
+        axios.post("https://api.indexnow.org/indexnow", {
+          host: "https://komikoi.com",
+          key: "9da618746c5f47a69d45a7bdbdab8dce",
+          keyLocation: "https://komikoi.com/9da618746c5f47a69d45a7bdbdab8dce.txt",
+          urlList: [`https://komikoi.com/baca/${createChapterResponse.data.payload.slug}`],
+        });
+
+        logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
+      } catch (error) {
+        logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
+      }
 
       if (isPerfomingFailedJob) {
         const failedJobDocRef = doc(db, "failed-jobs", failedJob.id);
