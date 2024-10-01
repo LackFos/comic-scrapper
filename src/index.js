@@ -269,10 +269,10 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         alternativeWebsite = WEBSITES[alternativeWebsite.alternative];
 
         try {
-          logger.info(`[${deviceName}] Redirecting to alternative website`);
           page.goto(`${alternativeWebsite.search}${failedJob.title}`, { timeout: 0 });
-          await page.waitForSelector(alternativeWebsite.elements.listTitle.parent, { timeout: 0 });
-          console.log(`${alternativeWebsite.search}${failedJob.title}`);
+
+          logger.info(`[${deviceName}] Searching for comic in alternative website...`);
+          await page.waitForSelector(alternativeWebsite.elements.listTitle.parent);
 
           let alternativeComicLink = null;
 
@@ -288,6 +288,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           if (!alternativeComicLink) throw new Error(`Comic not found in alternative website: ${alternativeComicLink}`);
 
           page.goto(alternativeComicLink, { timeout: 0 });
+          logger.info(`[${deviceName}] Searching for chapter in alternative website...`);
           await page.waitForSelector(alternativeWebsite.elements.chapter.parent);
 
           let alternativeChapterLink = null;
@@ -322,6 +323,8 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           const failedJobDocRef = doc(db, "failed-jobs", failedJob.id);
 
           await updateDoc(failedJobDocRef, { aborted: true });
+
+          continue;
         }
       }
     }
