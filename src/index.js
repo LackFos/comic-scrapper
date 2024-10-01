@@ -104,7 +104,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
   const q = query(collection(db, "similiar-title"), where("raw", "==", comicTitle.toLocaleLowerCase()));
   const querySnapshot = await getDocs(q);
   const isSimilarTitleExists = querySnapshot.size > 0;
-
+  console.log(comicTitle.toLocaleLowerCase());
   if (isSimilarTitleExists) {
     const data = querySnapshot.docs[0].data();
     logger.info(`[${deviceName}] 🤝 Similiar title found`);
@@ -400,7 +400,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           await updateDoc(doc(db, "failed-jobs", failedJob.id), { onRetry: false });
         }
       } else {
-        if (error.response && Boolean(error.response.data?.errors.number)) {
+        if (error.response && Boolean(error.response.data?.errors?.number)) {
           continue;
         }
 
