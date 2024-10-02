@@ -207,7 +207,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
               logger.info(`[${deviceName}] ✅ Comic created successfuly`);
             } catch (error) {
               logger.error(`[${deviceName}] ⚠️ Failed to create comic : ${error.message}`);
-              logger.error(`[${deviceName}] ${error}`);
+              console.log(error);
               continue; // skip to next title
             } finally {
               fs.rmSync("./src/temp", { recursive: true, force: true });
@@ -395,7 +395,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             logger.info(`[${deviceName}] 🎉 Chapter ${chapterToScrape.value} processed in ${(Date.now() - startTime) / 1000} seconds`);
           } catch (error) {
             logger.error(`[${deviceName}] ⚠️ Failed to create chapter ${chapterToScrape.link}, ${error.message}`);
-            logger.error(`[${deviceName}] ⚠️ ${error}`);
+            console.log(error);
 
             if (isPerfomingFailedJob) {
               if (error.response && Boolean(error.response.data?.errors?.number)) {
