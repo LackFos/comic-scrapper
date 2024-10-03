@@ -45,7 +45,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
   ]);
 
   console.log("\nLaunching browser...");
-  const browser = await scrapper.launch({ headless: false });
+  const browser = await scrapper.launch({ headless: true });
   const websites = selectedWebsite === "All" ? Object.values(WEBSITES) : [WEBSITES[selectedWebsite]];
 
   async function startScrapping() {
