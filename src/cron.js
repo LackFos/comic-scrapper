@@ -78,9 +78,9 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         website
       );
 
-      console.log(`comics found : \n${availableTitles.map((title, index) => `${index + 1}. ${title.text}`).join("\n")}\n`);
+      console.log(`comics found : \n${availableTitles.map((title, index) => `${index + 1}. ${title.text}`).join("\n")}`);
 
-      for (const title of availableTitles) {
+      for (const title of availableTitles.reverse()) {
         website.comicDelay && (await delay(website.comicDelay));
 
         console.log("\n");
