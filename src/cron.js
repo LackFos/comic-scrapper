@@ -161,7 +161,15 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
               await mangadexPage.waitForSelector(".placeholder-current");
 
               await mangadexPage.locator(".placeholder-current").fill(createComicPayload.name);
-              await mangadexPage.locator(".manga-card-dense").click();
+              await mangadexPage.waitForSelector(".manga-card-dense");
+
+              const firstMangaCard = await mangadexPage.$(".manga-card-dense");
+
+              if (firstMangaCard) {
+                await firstMangaCard.click();
+              } else {
+                throw new Error("No manga found");
+              }
 
               await mangadexPage.waitForSelector("span.text-primary", { timeout: 0 });
               createComicPayload.rating = await mangadexPage.$eval("span.text-primary", (element) => element.textContent.trim());
