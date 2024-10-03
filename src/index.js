@@ -47,7 +47,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
   ]);
 
   console.log("\nLaunching browser...");
-  const browser = await scrapper.launch({ headless: false });
+  const browser = await scrapper.launch({ headless: true });
   const page = await browser.newPage();
 
   const website = WEBSITES[selectedWebsite];
@@ -104,9 +104,15 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
   const q = query(collection(db, "similiar-title"), where("raw", "==", comicTitle.toLocaleLowerCase()));
   const querySnapshot = await getDocs(q);
   const isSimilarTitleExists = querySnapshot.size > 0;
-  console.log(comicTitle.toLocaleLowerCase());
+
   if (isSimilarTitleExists) {
     const data = querySnapshot.docs[0].data();
+
+    if (data.ignore) {
+      logger.info(`[${deviceName}] 🤝 Similiar title found, marked as DONT-SCRAPE`);
+      process.exit(0);
+    }
+
     logger.info(`[${deviceName}] 🤝 Similiar title found`);
     comicTitle = data.similiarTitle;
   }
