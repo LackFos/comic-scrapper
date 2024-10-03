@@ -101,6 +101,12 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
         if (isSimilarTitleExists) {
           const data = querySnapshot.docs[0].data();
+
+          if (data.ignore) {
+            logger.info(`[${deviceName}] 🤝 Similiar title found, marked as DONT-SCRAPE`);
+            continue;
+          }
+
           logger.info(`[${deviceName}] 🤝 Similiar title found`);
           comicTitle = data.similiarTitle;
         }
