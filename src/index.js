@@ -172,7 +172,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         await mangadexPage.goto("https://mangadex.org/", { timeout: 0 });
         await mangadexPage.waitForSelector(".placeholder-current");
 
-        await mangadexPage.locator(".placeholder-current").fill(createComicPayload.name);
+        await mangadexPage.type(".placeholder-current", createComicPayload.name);
         await mangadexPage.waitForSelector(".manga-card-dense");
 
         const firstMangaCard = await mangadexPage.$(".manga-card-dense");
