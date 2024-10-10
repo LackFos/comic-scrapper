@@ -86,6 +86,40 @@ export const WEBSITES = {
       },
     },
   },
+  "westmanga.fun": {
+    domain: "westmanga.fun",
+    alternative: "komikindo.lol",
+    default: "https://westmanga.fun",
+    search: "https://westmanga.fun/?s=",
+    isLazyLoad: true,
+    searchElements: {
+      listTitle: {
+        parent: ".postbody .bsx",
+        text: ".tt",
+        link: "a",
+      },
+    },
+    elements: {
+      listTitle: {
+        parent: ".bixbox:nth-of-type(2) .bsx",
+        text: ".tt a",
+        link: ".tt a",
+      },
+      title: ".entry-title",
+      cover: ".thumb img",
+      type: "tr:nth-of-type(2) > td:nth-of-type(2)",
+      author: "tr:nth-of-type(3) > td:nth-of-type(2)",
+      status: "tr:nth-of-type(1) > td:nth-of-type(2)",
+      description: ".entry-content",
+      genre: ".seriestugenre a",
+      chapter: {
+        parent: ".chbox",
+        text: ".chapternum",
+        link: "a",
+        image: "#readerarea img",
+      },
+    },
+  },
   "komikindo.lol": {
     domain: "komikindo.lol",
     alternative: "komiku.com",

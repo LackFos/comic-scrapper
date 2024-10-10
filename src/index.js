@@ -369,9 +369,13 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
       timeout: 0,
     });
 
+    const isLazyLoad = isPerfomingFailedJob ? alternativeWebsite.isLazyLoad : website.isLazyLoad;
+
     const imagesUrl = await page.$$eval(
       isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image,
-      (images) => images.map((image) => image.src)
+      (images, isLazyLoad) =>
+        images.map((image) => (isLazyLoad ? (image.dataset.src ? image.dataset.src : image.src) : image.src.replace(/\?.*/g, ""))),
+      isLazyLoad
     );
 
     try {
