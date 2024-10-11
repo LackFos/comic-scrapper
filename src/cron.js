@@ -92,7 +92,10 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         let comicChapters = [];
 
         await page.waitForSelector(website.elements.title);
-        comicTitle = (await page.$eval(website.elements.title, (element) => element.textContent.trim())).replace(/(komik|comic)\s*/gi, "");
+        comicTitle = (await page.$eval(website.elements.title, (element) => element.textContent.trim())).replace(
+          /(komik|comic| Bahasa Indonesia)\s*/gi,
+          ""
+        );
 
         // Check if comic name is in similiar title database
         const q = query(collection(db, "similiar-title"), where("raw", "==", comicTitle.toLocaleLowerCase()));
@@ -139,21 +142,33 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             createComicPayload.description = await page.$eval(website.elements.description, (element) => element.textContent.trim());
             logger.info(`[${deviceName}] comic-description: Done!`);
 
-            await page.waitForSelector(website.elements.author);
-            createComicPayload.author = (await page.$eval(website.elements.author, (element) => element.textContent.trim()))
-              .replace(/(pengarang|author)\s*/gi, "")
-              .trim();
-            logger.info(`[${deviceName}] comic-author: Done!`);
+            if (website.elements.author) {
+              await page.waitForSelector(website.elements.author);
+              createComicPayload.author = (await page.$eval(website.elements.author, (element) => element.textContent.trim()))
+                .replace(/(pengarang|author)\s*/gi, "")
+                .trim();
+              logger.info(`[${deviceName}] comic-author: Done!`);
+            } else {
+              logger.info(`[${deviceName}] comic-author: Skipped!`);
+            }
 
             await page.waitForSelector(website.elements.type);
             const type = await page.$eval(website.elements.type, (element) => element.textContent.trim());
             createComicPayload.type_id = TYPES[type] ?? undefined;
             logger.info(`[${deviceName}] comic-type: Done!`);
 
-            await page.waitForSelector(website.elements.status);
-            const status = (await page.$eval(website.elements.status, (element) => element.textContent.trim())).replace(/status\s*/gi, "");
-            createComicPayload.status_id = STATUSES[status] ?? STATUSES["ongoing"];
-            logger.info(`[${deviceName}] comic-status: Done!`);
+            if (website.elements.status) {
+              await page.waitForSelector(website.elements.status);
+              const status = (await page.$eval(website.elements.status, (element) => element.textContent.trim())).replace(
+                /status\s*/gi,
+                ""
+              );
+              createComicPayload.status_id = STATUSES[status] ?? STATUSES["ongoing"];
+              logger.info(`[${deviceName}] comic-status: Done!`);
+            } else {
+              createComicPayload.status_id = STATUSES.ongoing;
+              logger.info(`[${deviceName}] comic-status: Skipped!`);
+            }
 
             await page.waitForSelector(website.elements.genre);
             const genres = await page.$$eval(website.elements.genre, (elements) => elements.map((element) => element.textContent.trim()));
@@ -350,9 +365,13 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             timeout: 0,
           });
 
+          const isLazyLoad = isPerfomingFailedJob ? alternativeWebsite.isLazyLoad : website.isLazyLoad;
+
           const imagesUrl = await page.$$eval(
             isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image,
-            (images) => images.map((image) => image.src)
+            (images, isLazyLoad) =>
+              images.map((image) => (isLazyLoad ? (image.dataset.src ? image.dataset.src : image.src) : image.src.replace(/\?.*/g, ""))),
+            isLazyLoad
           );
 
           try {
