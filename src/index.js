@@ -275,6 +275,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
   ).sort((a, b) => Number(a.text) - Number(b.text));
 
   let chaptersToScrape = [];
+  const blackListedChapters = await getDocs(query(collection(db, "blacklist-chapter"), where("comicId", "==", comicId)));
 
   if (scrapMode === "Single") {
     const { selectedChapter } = await inquirer.prompt([
@@ -288,8 +289,14 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
     chaptersToScrape.push(availableChapters.find((chapter) => chapter.text === selectedChapter));
   } else {
+    let chaptersToSkip = comicChapters;
+
+    if (!blackListedChapters.empty) {
+      chaptersToSkip = chaptersToSkip.concat(blackListedChapters.docs[0].data().numbers);
+    }
+
     availableChapters.forEach((chapter) => {
-      if (!comicChapters.includes(Number(chapter.text))) chaptersToScrape.push(chapter);
+      if (!chaptersToSkip.includes(Number(chapter.text))) chaptersToScrape.push(chapter);
     });
   }
 
