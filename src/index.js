@@ -264,10 +264,12 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
       (elements, website) =>
         elements.map((element) => ({
           text:
-            element
-              .querySelector(website.elements.chapter.text)
-              .textContent.trim()
-              .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0,
+            Number(
+              element
+                .querySelector(website.elements.chapter.text)
+                .textContent.trim()
+                .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1]
+            ) ?? 0,
           link: element.querySelector(website.elements.chapter.link).href,
         })),
       website
