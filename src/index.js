@@ -168,7 +168,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
       createComicPayload.type_id = TYPES[type] ?? undefined;
       logger.info(`[${deviceName}] comic-type: Done!`);
 
-      if (website.element.status) {
+      if (website.elements.status) {
         await page.waitForSelector(website.elements.status);
         const status = (await page.$eval(website.elements.status, (element) => element.textContent.trim())).replace(/status\s*/gi, "");
         createComicPayload.status_id = STATUSES[status] ?? STATUSES["ongoing"];
@@ -264,10 +264,12 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
       (elements, website) =>
         elements.map((element) => ({
           text:
-            element
-              .querySelector(website.elements.chapter.text)
-              .textContent.trim()
-              .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0,
+            Number(
+              element
+                .querySelector(website.elements.chapter.text)
+                .textContent.trim()
+                .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1]
+            ) ?? 0,
           link: element.querySelector(website.elements.chapter.link).href,
         })),
       website
