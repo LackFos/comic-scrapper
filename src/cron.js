@@ -268,7 +268,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           )
         ).sort((a, b) => a.value - b.value);
         const blackListedChapters = await getDocs(query(collection(db, "blacklist-chapter"), where("comicId", "==", comicId)));
-        const chaptersToSkip = comicChapters;
+        let chaptersToSkip = comicChapters;
 
         if (!blackListedChapters.empty) {
           chaptersToSkip = chaptersToSkip.concat(blackListedChapters.docs[0].data().numbers);
