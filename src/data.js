@@ -1,7 +1,7 @@
 export const WEBSITES = {
   "shinigami05.com": {
     domain: "shinigami05.com",
-    alternative: "komikindo.lol",
+    alternative: "komikindo.my",
     comicDelay: 8000,
     chapterDelay: 4000,
     default: "https://shinigami05.com",
@@ -36,7 +36,7 @@ export const WEBSITES = {
   },
   "komiku.id": {
     domain: "komiku.id",
-    alternative: "komikindo.lol",
+    alternative: "komikindo.my",
     default: "https://komiku.id/pustaka",
     search: "https://komiku.id/?post_type=manga&s=",
     elements: {
@@ -62,7 +62,7 @@ export const WEBSITES = {
   },
   "komiku.com": {
     domain: "komiku.com",
-    alternative: "komikindo.lol",
+    alternative: "komikindo.my",
     default: "https://komiku.com/manga/?order=update",
     search: "https://komiku.com/?s=",
     elements: {
@@ -88,7 +88,7 @@ export const WEBSITES = {
   },
   "westmanga.fun": {
     domain: "westmanga.fun",
-    alternative: "komikindo.lol",
+    alternative: "komikindo.my",
     default: "https://westmanga.fun",
     search: "https://westmanga.fun/?s=",
     isLazyLoad: true,
@@ -122,7 +122,7 @@ export const WEBSITES = {
   },
   "soulscans.my.id": {
     domain: "soulscans.my.id",
-    alternative: "komikindo.lol",
+    alternative: "komikindo.my",
     default: "https://soulscans.my.id",
     search: "https://soulscans.my.id/?s=",
     isLazyLoad: true,
@@ -149,7 +149,7 @@ export const WEBSITES = {
   },
   "monzeekomik.my.id": {
     domain: "monzeekomik.my.id",
-    alternative: "komikindo.lol",
+    alternative: "komikindo.my",
     default: "https://monzeekomik.my.id",
     search: "https://monzeekomik.my.id/?s=",
     elements: {
@@ -173,11 +173,11 @@ export const WEBSITES = {
       },
     },
   },
-  "komikindo.lol": {
-    domain: "komikindo.lol",
+  "komikindo.my": {
+    domain: "komikindo.my",
     alternative: "komiku.com",
-    default: "https://komikindo.lol/komik-terbaru/",
-    search: "https://komikindo.lol/?s=",
+    default: "https://komikindo.my/komik-terbaru/",
+    search: "https://komikindo.my/?s=",
     elements: {
       listTitle: {
         parent: ".animepost",
