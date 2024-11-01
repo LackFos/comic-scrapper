@@ -2,9 +2,8 @@ import fs from "fs";
 import axios from "axios";
 import dotenv from "dotenv";
 import pLimit from "p-limit";
-import inquirer from "inquirer";
-import UserAgent from "user-agents";
 import cron from "node-cron";
+import inquirer from "inquirer";
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 import connectToDatabase from "./connectToDatabase.js";
 import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
@@ -53,10 +52,6 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
     for (const website of websites) {
       const page = await browser.newPage();
-
-      const userAgent = new UserAgent({ deviceCategory: "desktop" });
-      const randomUserAgent = userAgent.toString();
-      await page.setUserAgent(randomUserAgent);
 
       const websiteUrl = website.default;
 
