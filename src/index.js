@@ -3,6 +3,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import pLimit from "p-limit";
 import inquirer from "inquirer";
+import UserAgent from "user-agents";
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 import connectToDatabase from "./connectToDatabase.js";
 import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
@@ -49,6 +50,10 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
   console.log("\nLaunching browser...");
   const browser = await scrapper.launch({ headless: true });
   const page = await browser.newPage();
+
+  const userAgent = new UserAgent({ deviceCategory: "desktop" });
+  const randomUserAgent = userAgent.toString();
+  await page.setUserAgent(randomUserAgent);
 
   const website = WEBSITES[selectedWebsite];
   const websiteUrl = keyword ? `${website.search}${keyword}` : website.default;

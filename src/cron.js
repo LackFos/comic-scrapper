@@ -54,8 +54,9 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
     for (const website of websites) {
       const page = await browser.newPage();
 
-      const userAgent = new UserAgent();
-      await page.setUserAgent(userAgent.random().toString());
+      const userAgent = new UserAgent({ deviceCategory: "desktop" });
+      const randomUserAgent = userAgent.toString();
+      await page.setUserAgent(randomUserAgent);
 
       const websiteUrl = website.default;
 
