@@ -44,7 +44,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
   ]);
 
   console.log("\nLaunching browser...");
-  const browser = await scrapper.launch({ headless: true, executablePath: "/usr/bin/chromium", args: ["--no-sandbox"] });
+  const browser = await scrapper.launch({ headless: true, executablePath: "/home/kristoff/projects/comic-scrapper/chrome/linux-130.0.6723.91/chrome-linux64/chrome", args: ["--no-sandbox"] });
   const websites = selectedWebsite === "All" ? Object.values(WEBSITES) : [WEBSITES[selectedWebsite]];
 
   async function startScrapping() {
