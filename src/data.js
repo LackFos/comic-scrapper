@@ -1,11 +1,11 @@
 export const WEBSITES = {
-  "shinigami06.com": {
-    domain: "shinigami06.com",
+  "shinigami07.com": {
+    domain: "shinigami07.com",
     alternative: "komikindo.biz",
     comicDelay: 8000,
     chapterDelay: 4000,
-    default: "https://shinigami06.com",
-    search: "https://shinigami06.com/?post_type=wp-manga&s=",
+    default: "https://shinigami07.com",
+    search: "https://shinigami07.com/?post_type=wp-manga&s=",
     searchElements: {
       listTitle: {
         parent: ".post-title",
