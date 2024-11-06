@@ -397,13 +397,13 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             }
 
             const createChapterPayload = {
-              comic_id: comicId,
+              comic_id: isPerfomingFailedJob ? failedJob.comicId : comicId,
               number: chapterToScrape.value,
               name: `Chapter ${chapterToScrape.value}`,
               images: imagesBuffer,
             };
 
-            logger.info(`[${deviceName}] Uploading ${comicTitle} (${chapterToScrape.value})`);
+            logger.info(`[${deviceName}] Uploading ${isPerfomingFailedJob ? failedJob.title : comicTitle} (${chapterToScrape.value})`);
 
             const createChapterResponse = await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, createChapterPayload, {
               headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },

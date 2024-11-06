@@ -1,11 +1,11 @@
 export const WEBSITES = {
-  "shinigami06.com": {
-    domain: "shinigami06.com",
-    alternative: "komikindo.my",
+  "shinigami07.com": {
+    domain: "shinigami07.com",
+    alternative: "komikindo.biz",
     comicDelay: 8000,
     chapterDelay: 4000,
-    default: "https://shinigami06.com",
-    search: "https://shinigami06.com/?post_type=wp-manga&s=",
+    default: "https://shinigami07.com",
+    search: "https://shinigami07.com/?post_type=wp-manga&s=",
     searchElements: {
       listTitle: {
         parent: ".post-title",
@@ -36,7 +36,7 @@ export const WEBSITES = {
   },
   "komiku.id": {
     domain: "komiku.id",
-    alternative: "komikindo.my",
+    alternative: "komikindo.biz",
     default: "https://komiku.id/pustaka",
     search: "https://komiku.id/?post_type=manga&s=",
     elements: {
@@ -62,7 +62,7 @@ export const WEBSITES = {
   },
   "komiku.com": {
     domain: "komiku.com",
-    alternative: "komikindo.my",
+    alternative: "komikindo.biz",
     default: "https://komiku.com/manga/?order=update",
     search: "https://komiku.com/?s=",
     elements: {
@@ -88,7 +88,7 @@ export const WEBSITES = {
   },
   "westmanga.fun": {
     domain: "westmanga.fun",
-    alternative: "komikindo.my",
+    alternative: "komikindo.biz",
     default: "https://westmanga.fun",
     search: "https://westmanga.fun/?s=",
     isLazyLoad: true,
@@ -122,7 +122,7 @@ export const WEBSITES = {
   },
   "soulscans.my.id": {
     domain: "soulscans.my.id",
-    alternative: "komikindo.my",
+    alternative: "komikindo.biz",
     default: "https://soulscans.my.id",
     search: "https://soulscans.my.id/?s=",
     isLazyLoad: true,
@@ -149,7 +149,7 @@ export const WEBSITES = {
   },
   "monzeekomik.my.id": {
     domain: "monzeekomik.my.id",
-    alternative: "komikindo.my",
+    alternative: "komikindo.biz",
     default: "https://monzeekomik.my.id",
     search: "https://monzeekomik.my.id/?s=",
     elements: {
@@ -173,11 +173,11 @@ export const WEBSITES = {
       },
     },
   },
-  "komikindo.my": {
-    domain: "komikindo.my",
+  "komikindo.biz": {
+    domain: "komikindo.biz",
     alternative: "komiku.com",
-    default: "https://komikindo.my/komik-terbaru/",
-    search: "https://komikindo.my/?s=",
+    default: "https://komikindo.biz/komik-terbaru/",
+    search: "https://komikindo.biz/?s=",
     elements: {
       listTitle: {
         parent: ".animepost",
