@@ -173,11 +173,11 @@ export const WEBSITES = {
       },
     },
   },
-  "komikindo.biz": {
-    domain: "komikindo.biz",
+  "komikindo2.com": {
+    domain: "komikindo2.com",
     alternative: "komiku.com",
-    default: "https://komikindo.biz/komik-terbaru/",
-    search: "https://komikindo.biz/?s=",
+    default: "https://komikindo2.com/komik-terbaru/",
+    search: "https://komikindo2.com/?s=",
     elements: {
       listTitle: {
         parent: ".animepost",
