@@ -19,7 +19,7 @@ const deviceName = process.env.DEVICE_NAME;
     const { selectedWebsite } = await askQuestion("website");
     const { selectedKeyword } = await askQuestion("keyword");
 
-    websiteToScrape = WEBSITES[selectedWebsite];
+    websiteToScrape = [WEBSITES[selectedWebsite]];
     keyword = selectedKeyword;
   }
 
@@ -30,9 +30,9 @@ const deviceName = process.env.DEVICE_NAME;
     let comicToScrape = await fetchTitle(websiteUrl, titleElement);
 
     if (selectedType === "Manual") {
-      const titleOptions = availableTitles.map((title) => title.text);
+      const titleOptions = comicToScrape.map((title) => title.text);
       const { selectedTitle } = await askQuestion("title", titleOptions);
-      comicToScrape = availableTitles.find((title) => title.text === selectedTitle);
+      comicToScrape = [comicToScrape.find((title) => title.text === selectedTitle)];
     }
 
     for (const selectedComic of comicToScrape) {
@@ -190,7 +190,6 @@ async function fetchTitle(websiteUrl, titleElement) {
       "Accept-Language": "en-US,en;q=0.5",
     },
   });
-  console.log(response.data);
 
   const $ = cheerio.load(response.data);
 
@@ -302,11 +301,20 @@ async function scrapeComic($, elements, name) {
         .trim()
     ] ?? STATUSES["ongoing"];
 
-  comic.genres = $(elements.genre)
-    .map((index, element) => GENRES[$(element).text().trim()])
-    .get();
+  try {
+    const findGenres = await axios.get(`${process.env.API_ENDPOINT}/api/genres/bulk-find`, {
+      headers: { Authorization: process.env.ACCESS_TOKEN },
+      data: {
+        genre_names: $(elements.genre)
+          .map((index, element) => $(element).text().trim())
+          .get(),
+      },
+    });
 
-  comic.image = $(elements.cover).attr("src").replace(/\?.*/g, "");
+    comic.genres = findGenres.data.payload.map((genre) => genre.id);
+  } catch (error) {
+    logger.error(`[${deviceName}] ⚠️ Failed to find genres : ${error.message}`);
+  }
 
   return comic;
 }
