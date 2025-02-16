@@ -1,44 +1,200 @@
-import fs from "fs";
 import axios from "axios";
 import dotenv from "dotenv";
-import pLimit from "p-limit";
 import inquirer from "inquirer";
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
-import connectToDatabase from "./connectToDatabase.js";
 import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
-import { delay, downloadFile, logger, scrapper } from "./libs/utils.js";
+import { delay, logger } from "./libs/utils.js";
 import * as cheerio from "cheerio";
 
 dotenv.config();
-
 const deviceName = process.env.DEVICE_NAME;
 
-async function getWebsite() {
-  const { selectedWebsite, keyword } = await inquirer.prompt([
-    {
-      name: "selectedWebsite",
-      type: "list",
-      message: "Pilih website:",
-      choices: Object.keys(WEBSITES),
-    },
-    {
-      name: "keyword",
-      type: "input",
-      message: "Cari judul:",
-    },
-  ]);
+// Main loop
+(async () => {
+  const { selectedType } = await askQuestion("type");
 
-  const website = WEBSITES[selectedWebsite];
-  const websiteUrl = keyword ? `${website.search}${keyword}` : website.default;
+  let websiteToScrape = Object.values(WEBSITES);
+  let keyword = null;
 
-  return { website, websiteUrl, keyword };
+  if (selectedType === "Manual") {
+    const { selectedWebsite } = await askQuestion("website");
+    const { selectedKeyword } = await askQuestion("keyword");
+
+    websiteToScrape = WEBSITES[selectedWebsite];
+    keyword = selectedKeyword;
+  }
+
+  for (const website of websiteToScrape) {
+    const websiteUrl = keyword ? `${website.search}${keyword}` : website.default;
+    const titleElement = keyword ? website.searchElements.listTitle : website.elements.listTitle;
+
+    let comicToScrape = await fetchTitle(websiteUrl, titleElement);
+
+    if (selectedType === "Manual") {
+      const titleOptions = availableTitles.map((title) => title.text);
+      const { selectedTitle } = await askQuestion("title", titleOptions);
+      comicToScrape = availableTitles.find((title) => title.text === selectedTitle);
+    }
+
+    for (const selectedComic of comicToScrape) {
+      const comic = await findOrCreateComic(selectedComic, website.elements);
+
+      website.comicDelay && (await delay(website.comicDelay));
+
+      const { scrapeMode } = await askQuestion("mode");
+
+      logger.info(`[${deviceName}] Fetching Chapters`);
+      let chaptersToScrape = comic.scrapeableChapters;
+
+      if (selectedType === "Manual" && scrapeMode === "Single") {
+        const chapterOptions = comic.scrapeableChapters.map((chapter) => chapter.text);
+        const { selectedChapter } = await askQuestion("chapter", chapterOptions);
+        chaptersToScrape = comic.scrapeableChapters.find((chapter) => chapter.text === selectedChapter);
+      }
+
+      logger.info(`[${deviceName}] Chapters found : ${chaptersToScrape.length}`);
+
+      while (chaptersToScrape.length > 0) {
+        let chapterToScrape = chaptersToScrape.shift();
+
+        logger.info(`[${deviceName}] Downloading images for chapter ${chapterToScrape.text}`);
+
+        const startTime = Date.now();
+        const response = await axios.get(chapterToScrape.link);
+        const $ = cheerio.load(response.data);
+
+        const imageUrls = [];
+        const isLazyLoad = website.isLazyLoad;
+
+        if (isLazyLoad) {
+          const noscriptHtml = $("noscript").html();
+          const $noscript = cheerio.load(noscriptHtml);
+
+          $noscript("img").each((index, element) => {
+            imageUrls.push(`${$(element).attr("src").replace("https://", "https://i0.wp.com/")}`);
+          });
+        } else {
+          $(website.elements.chapter.image).each((index, element) => {
+            imageUrls.push(`${$(element).attr("src").replace("https://", "https://i0.wp.com/")}`);
+          });
+        }
+
+        try {
+          const createChapterPayload = {
+            comic_id: comic.id,
+            number: chapterToScrape.text,
+            name: `Chapter ${chapterToScrape.text}`,
+            images: imageUrls,
+          };
+
+          await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, createChapterPayload, {
+            headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
+          });
+
+          // try {
+          //   axios.post("https://api.indexnow.org/indexnow", {
+          //     host: "https://komikoi.com",
+          //     key: "9da618746c5f47a69d45a7bdbdab8dce",
+          //     keyLocation: "https://komikoi.com/9da618746c5f47a69d45a7bdbdab8dce.txt",
+          //     urlList: [`https://komikoi.com/baca/${createChapterResponse.data.payload.slug}`],
+          //   });
+
+          //   logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
+          // } catch (error) {
+          //   logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
+          // }
+
+          logger.info(`[${deviceName}] 🎉 Chapter ${chapterToScrape.text} processed in ${(Date.now() - startTime) / 1000} seconds`);
+        } catch (error) {
+          logger.error(`[${deviceName}] ⚠️ Failed to create chapter ${chapterToScrape.link}, ${error.message}`);
+        }
+      }
+    }
+  }
+
+  console.log("\n🙏 All Done.");
+})();
+
+async function askQuestion(type, options) {
+  if (type === "website") {
+    return await inquirer.prompt([
+      {
+        name: "selectedWebsite",
+        type: "list",
+        message: "Pilih website:",
+        choices: Object.keys(WEBSITES),
+      },
+    ]);
+  }
+
+  if (type === "keyword") {
+    return await inquirer.prompt([
+      {
+        name: "selectedKeyword",
+        type: "input",
+        message: "Cari judul:",
+      },
+    ]);
+  }
+
+  if (type === "title") {
+    return await inquirer.prompt([
+      {
+        name: "selectedTitle",
+        type: "list",
+        message: "Pilih komik:",
+        choices: options,
+      },
+    ]);
+  }
+
+  if (type === "mode") {
+    return await inquirer.prompt([
+      {
+        name: "scrapeMode",
+        type: "list",
+        message: "Pilih mode:",
+        choices: ["Auto", "Single"],
+      },
+    ]);
+  }
+
+  if (type === "chapter") {
+    return await inquirer.prompt([
+      {
+        name: "selectedChapter",
+        type: "list",
+        message: "Pilih chapter:",
+        choices: options,
+      },
+    ]);
+  }
+
+  if (type === "type") {
+    return await inquirer.prompt([
+      {
+        name: "selectedType",
+        type: "list",
+        message: "Pilih tipe:",
+        choices: ["Cron", "Manual"],
+      },
+    ]);
+  }
 }
 
-async function getComic(website, websiteUrl, keyword) {
-  const response = await axios.get(websiteUrl);
+async function fetchTitle(websiteUrl, titleElement) {
+  const response = await axios.get(websiteUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+      Referer: "https://www.google.com/",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9",
+      "Accept-Language": "en-US,en;q=0.5",
+    },
+  });
+  console.log(response.data);
+
   const $ = cheerio.load(response.data);
 
-  const titleElement = keyword && website.searchElements ? website.searchElements.listTitle : website.elements.listTitle;
+  // const titleElement = keyword && website.searchElements ? website.searchElements.listTitle : website.elements.listTitle;
 
   const availableTitles = $(titleElement.parent)
     .map((index, element) => ({
@@ -47,379 +203,141 @@ async function getComic(website, websiteUrl, keyword) {
     }))
     .get();
 
-  const { selectedTitle, scrapMode } = await inquirer.prompt([
-    {
-      name: "selectedTitle",
-      type: "rawlist",
-      message: "Pilih komik:",
-
-      choices: availableTitles.map((title) => title.text),
-    },
-    {
-      name: "scrapMode",
-      type: "list",
-      message: "Pilih mode:",
-      choices: ["Auto", "Single"],
-    },
-  ]);
-
-  return { selectedTitle, scrapMode, availableTitles };
+  return availableTitles;
 }
 
-// Main loop
-(async () => {
-  const { website, websiteUrl, keyword } = await getWebsite();
-  const { selectedTitle, scrapMode, availableTitles } = await getComic(website, websiteUrl, keyword);
+async function findOrCreateComic(selectedComic, elements) {
+  const response = await axios.get(selectedComic.link);
+  const $ = cheerio.load(response.data);
 
-  const selectedComic = availableTitles.find((comic) => comic.text === selectedTitle);
-  website.comicDelay && (await delay(website.comicDelay));
+  const comic = {
+    id: null,
+    title: null,
+    chapters: [],
+    scrapeableChapters: [],
+  };
 
-  console.log("\n");
-  const resposne = await axios.get(selectedComic.link);
-  const $ = cheerio.load(resposne.data);
-
-  let comicId = null;
-  let comicTitle = null;
-  let comicChapters = [];
-
-  comicTitle = $(website.elements.title)
+  comic.title = $(elements.title)
     .text()
-    .replace(/(komik|comic| Bahasa Indonesia)\s*/gi, "");
+    .replace(/(komik|comic| Bahasa Indonesia)\s*/gi, "")
+    .trim();
 
   try {
-    const response = await axios.get(`${process.env.API_ENDPOINT}/api/comics/find-one/?name=${comicTitle}`, {
+    const response = await axios.get(`${process.env.API_ENDPOINT}/api/comics/find-one/?name=${comic.title}`, {
       headers: { Authorization: process.env.ACCESS_TOKEN },
     });
 
-    comicId = response.data.payload.id;
-    comicChapters = response.data.payload.chapters.map((chapter) => chapter.number);
-    logger.info(`[${deviceName}] Comic ${comicTitle} found in API, with ID: ${comicId}`);
+    comic.id = response.data.payload.id;
+    comic.chapters = response.data.payload.chapters.map((chapter) => chapter.number);
+
+    logger.info(`[${deviceName}] Comic ${comic.title} found in API, with ID: ${comic.id}`);
   } catch (error) {
-    console.log(error);
+    if (error.response && error.response.status === 404) {
+      logger.info(`[${deviceName}] Comic ${comic.title} not found in API`);
 
-    // if comic not found
-    if (Boolean(error.response) && error.response.status === 404) {
-      logger.info(`[${deviceName}] Comic ${comicTitle} not found in API`);
+      const createComicPayload = await scrapeComic($, elements, comic.title);
+      const response = await createComic(createComicPayload);
 
-      const createComicPayload = {
-        name: comicTitle,
-        description: undefined,
-        type_id: undefined,
-        author: undefined,
-        status_id: undefined,
-        genres: undefined,
-        rating: undefined,
-        image: undefined,
-      };
-
-      createComicPayload.description = $(website.elements.description)
-        .text()
-        .replace(/(komik|comic| Bahasa Indonesia)\s*/gi, "")
-        .trim();
-
-      createComicPayload.author = $(website.elements.author)
-        .text()
-        .replace(/(pengarang|author)\s*/gi, "")
-        .trim();
-
-      createComicPayload.type_id = TYPES[$(website.elements.type).text().trim()] ?? undefined;
-
-      createComicPayload.status_id =
-        STATUSES[
-          $(website.elements.status)
-            .text()
-            .replace(/status\s*/gi, "")
-            .trim()
-        ] ?? STATUSES["ongoing"];
-
-      createComicPayload.genres = $(website.elements.genre)
-        .map((index, element) => GENRES[$(element).text().trim()])
-        .get();
-
-      createComicPayload.image = $(website.elements.cover).attr("src").replace(/\?.*/g, "");
-      console.log(createComicPayload);
-
-      try {
-        const createComicResponse = await axios.post(`${process.env.API_ENDPOINT}/api/comics`, createComicPayload, {
-          headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data" },
-        });
-
-        // try {
-        //   axios.post("https://api.indexnow.org/indexnow", {
-        //     host: "https://komikoi.com",
-        //     key: "9da618746c5f47a69d45a7bdbdab8dce",
-        //     keyLocation: "https://komikoi.com/9da618746c5f47a69d45a7bdbdab8dce.txt",
-        //     urlList: [`https://komikoi.com/komik/${createComicResponse.data.payload.slug}`],
-        //   });
-
-        //   logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
-        // } catch (error) {
-        //   logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
-        // }
-
-        comicId = createComicResponse.data.payload.id;
-        comicTitle = createComicResponse.data.payload.name;
-        logger.info(`[${deviceName}] ✅ Comic created successfuly`);
-      } catch (error) {
-        logger.error(`[${deviceName}] ⚠️ Failed to create comic : ${error.message}`);
-        console.error(error);
-        process.exit(1);
-      } finally {
-        fs.rmSync("./src/temp", { recursive: true, force: true });
-      }
+      comic.id = response.payload.id;
     } else {
-      logger.warn(`[${deviceName}] ⚠️ Something went wrong, ${error.message}`);
+      logger.warn(`[${deviceName}] ⚠️ Something went wrong while finding comic in API, ${error.message}`);
       process.exit(1);
     }
   }
 
-  logger.info(`[${deviceName}] Fetching Chapters`);
-  await page.waitForSelector(website.elements.chapter.parent);
-
-  const availableChapters = (
-    await page.$$eval(
-      website.elements.chapter.parent,
-      (elements, website) =>
-        elements.map((element) => ({
-          text:
-            Number(
-              element
-                .querySelector(website.elements.chapter.text)
-                .textContent.trim()
-                .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1]
-            ) ?? 0,
-          link: element.querySelector(website.elements.chapter.link).href,
-        })),
-      website
-    )
-  ).sort((a, b) => Number(a.text) - Number(b.text));
-
-  let chaptersToScrape = [];
-  const blackListedChapters = await getDocs(query(collection(db, "blacklist-chapter"), where("comicId", "==", comicId)));
-
-  if (scrapMode === "Single") {
-    const { selectedChapter } = await inquirer.prompt([
-      {
-        name: "selectedChapter",
-        type: "list",
-        message: "Pilih chapter:",
-        choices: availableChapters.map((chapter) => chapter.text),
-      },
-    ]);
-
-    chaptersToScrape.push(availableChapters.find((chapter) => chapter.text === selectedChapter));
-  } else {
-    let chaptersToSkip = comicChapters;
-
-    if (!blackListedChapters.empty) {
-      chaptersToSkip = chaptersToSkip.concat(blackListedChapters.docs[0].data().numbers);
-    }
-
-    availableChapters.forEach((chapter) => {
-      if (!chaptersToSkip.includes(Number(chapter.text))) chaptersToScrape.push(chapter);
-    });
-  }
-
-  logger.info(`[${deviceName}] Chapters found : ${chaptersToScrape.length}`);
-
-  while (chaptersToScrape.length > 0 || failedJobs.length > 0) {
-    const failedJob = failedJobs[0];
-    const isPerfomingFailedJob = Boolean(failedJob);
-
-    // Todo throw unexpected error if no alternative website
-    let alternativeWebsite = isPerfomingFailedJob ? WEBSITES[failedJob.website] : null;
-    let chapterToScrape = isPerfomingFailedJob ? { link: failedJob.link, text: failedJob.value } : chaptersToScrape.shift();
-
-    if (isPerfomingFailedJob) {
-      logger.info(`[${deviceName}] 😇 Interupted, failed job exists!`);
-
-      await updateDoc(doc(db, "failed-jobs", failedJob.id), { onRetry: true });
-
-      if (failedJob.isCritical) {
-        logger.info(`[${deviceName}] 🚑 The failed job was CRITICAL!`);
-        alternativeWebsite = WEBSITES[alternativeWebsite.alternative];
-
-        try {
-          page.goto(`${alternativeWebsite.search}${failedJob.title}`, { timeout: 0 });
-
-          logger.info(`[${deviceName}] Searching for comic in alternative website...`);
-          await page.waitForSelector(alternativeWebsite.elements.listTitle.parent);
-
-          let alternativeComicLink = null;
-
-          try {
-            alternativeComicLink = await page.$eval(
-              alternativeWebsite.elements.listTitle.parent,
-              (element, alternativeWebsite) => element.querySelector(alternativeWebsite.elements.listTitle.link).href,
-              alternativeWebsite
-            );
-          } catch (error) {
-            throw new Error(`Comic not found in alternative website: ${error.message}`);
-          }
-          if (!alternativeComicLink) throw new Error(`Comic not found in alternative website: ${alternativeComicLink}`);
-
-          page.goto(alternativeComicLink, { timeout: 0 });
-          logger.info(`[${deviceName}] Searching for chapter in alternative website...`);
-          await page.waitForSelector(alternativeWebsite.elements.chapter.parent);
-
-          let alternativeChapterLink = null;
-
-          try {
-            alternativeChapterLink = await page.$$eval(
-              alternativeWebsite.elements.chapter.parent,
-              (elements, alternativeWebsite, failedJob) =>
-                elements
-                  .filter(
-                    (element) =>
-                      Number(
-                        element
-                          .querySelector(alternativeWebsite.elements.chapter.text)
-                          .textContent.trim()
-                          .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1] ?? 0
-                      ) === failedJob.value
-                  )[0]
-                  .querySelector(alternativeWebsite.elements.chapter.link).href,
-              alternativeWebsite,
-              failedJob
-            );
-          } catch (error) {
-            throw new Error(`Chapter not found in alternative website: ${error.message}`);
-          }
-          if (!alternativeChapterLink) throw new Error(`Chapter not found in alternative website: ${alternativeChapterLink}`);
-
-          chapterToScrape.link = alternativeChapterLink;
-        } catch (error) {
-          logger.error(`[${deviceName}] ⚠️ Failed to find alternative : ${error.message}`);
-
-          const failedJobDocRef = doc(db, "failed-jobs", failedJob.id);
-
-          await updateDoc(failedJobDocRef, { aborted: true });
-
-          continue;
-        }
-      }
-    }
-
-    fs.mkdirSync("./src/temp");
-
-    const startTime = Date.now();
-
-    logger.info(`[${deviceName}] 📢 Opening chapter page: ${chapterToScrape.link}`);
-    page.goto(chapterToScrape.link, { timeout: 0 });
-
-    logger.info(`[${deviceName}] Downloading images for chapter ${chapterToScrape.text}`);
-
-    await page.waitForSelector(isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image, {
-      timeout: 0,
-    });
-
-    const isLazyLoad = isPerfomingFailedJob ? alternativeWebsite.isLazyLoad : website.isLazyLoad;
-
-    const imagesUrl = await page.$$eval(
-      isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image,
-      (images, isLazyLoad) =>
-        images.map((image) => (isLazyLoad ? (image.dataset.src ? image.dataset.src : image.src) : image.src.replace(/\?.*/g, ""))),
-      isLazyLoad
-    );
-
-    try {
-      const downloadPromises = imagesUrl.map((url, index) => limit(() => downloadFile("./src/temp", index, url)));
-
-      const results = await Promise.allSettled(downloadPromises);
-
-      results.forEach((result) => {
-        if (result.status === "rejected") {
-          const customError = new Error(result.reason);
-          if (result.reason.isCritical) customError.isCritical = true;
-          throw customError;
-        }
-      });
-
-      const files = fs.readdirSync("./src/temp").sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
-      const imagesBuffer = files.map((file) => fs.createReadStream(`./src/temp/${file}`));
-
-      if (imagesBuffer.length !== imagesUrl.length) {
-        throw new Error(`❗ The downloaded images(${imagesBuffer.length}) doesnt match fetched urls(${imagesUrl.length})`);
-      }
-
-      const createChapterPayload = {
-        comic_id: isPerfomingFailedJob ? failedJob.comicId : comicId,
-        number: chapterToScrape.text,
-        name: `Chapter ${chapterToScrape.text}`,
-        images: imagesBuffer,
+  const availableChapters = $(elements.chapter.parent)
+    .map((index, element) => {
+      return {
+        text:
+          Number(
+            $(element)
+              .find(elements.chapter.text)
+              .text()
+              .trim()
+              .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1]
+          ) ?? 0,
+        link: $(element).find(elements.chapter.link).attr("href"),
       };
+    })
+    .get();
 
-      logger.info(`[${deviceName}] Uploading ${isPerfomingFailedJob ? failedJob.title : comicTitle} (${chapterToScrape.text})`);
+  comic.scrapeableChapters = availableChapters
+    .filter((chapter) => {
+      return !comic.chapters.includes(chapter.text);
+    })
+    .sort((a, b) => Number(a.text) - Number(b.text));
 
-      const createChapterResponse = await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, createChapterPayload, {
-        headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
-      });
+  return comic;
+}
 
-      try {
-        axios.post("https://api.indexnow.org/indexnow", {
-          host: "https://komikoi.com",
-          key: "9da618746c5f47a69d45a7bdbdab8dce",
-          keyLocation: "https://komikoi.com/9da618746c5f47a69d45a7bdbdab8dce.txt",
-          urlList: [`https://komikoi.com/baca/${createChapterResponse.data.payload.slug}`],
-        });
+async function scrapeComic($, elements, name) {
+  const comic = {
+    name,
+    description: undefined,
+    type_id: undefined,
+    author: undefined,
+    status_id: undefined,
+    genres: undefined,
+    rating: undefined,
+    image: undefined,
+  };
 
-        logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
-      } catch (error) {
-        logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
-      }
+  comic.description = $(elements.description)
+    .text()
+    .replace(/(komik|comic| Bahasa Indonesia)\s*/gi, "")
+    .trim();
 
-      if (isPerfomingFailedJob) {
-        const failedJobDocRef = doc(db, "failed-jobs", failedJob.id);
-        await deleteDoc(failedJobDocRef);
-      }
+  comic.author = $(elements.author)
+    .text()
+    .replace(/(pengarang|author)\s*/gi, "")
+    .trim();
 
-      logger.info(`[${deviceName}] 🎉 Chapter ${chapterToScrape.text} processed in ${(Date.now() - startTime) / 1000} seconds`);
-    } catch (error) {
-      logger.error(`[${deviceName}] ⚠️ Failed to create chapter ${chapterToScrape.link}, ${error.message}`);
-      console.log(error);
+  comic.type_id = TYPES[$(elements.type).text().trim()] ?? undefined;
 
-      if (isPerfomingFailedJob) {
-        if (error.response && Boolean(error.response.data?.errors?.number)) {
-          await deleteDoc(doc(db, "failed-jobs", failedJob.id));
-          continue;
-        } else if (failedJob.isCritical) {
-          await updateDoc(doc(db, "failed-jobs", failedJob.id), { aborted: true });
-        } else {
-          await updateDoc(doc(db, "failed-jobs", failedJob.id), { onRetry: false });
-        }
-      } else {
-        if (error.response && Boolean(error.response.data?.errors?.number)) {
-          continue;
-        }
+  comic.status_id =
+    STATUSES[
+      $(elements.status)
+        .text()
+        .replace(/status\s*/gi, "")
+        .trim()
+    ] ?? STATUSES["ongoing"];
 
-        const q = query(collection(db, "failed-jobs"), where("comicId", "==", comicId), where("value", "==", chapterToScrape.text));
-        const querySnapshot = await getDocs(q);
-        const isFailedJobExists = querySnapshot.docs.length > 0;
+  comic.genres = $(elements.genre)
+    .map((index, element) => GENRES[$(element).text().trim()])
+    .get();
 
-        if (!isFailedJobExists) {
-          await addDoc(collection(db, "failed-jobs"), {
-            website: website.domain,
-            comicId: comicId,
-            title: comicTitle,
-            link: chapterToScrape.link,
-            value: Number(chapterToScrape.text),
-            onRetry: false,
-            isCritical:
-              error.isCritical ||
-              (Boolean(error.response?.data?.errors) &&
-                Object.keys(error.response?.data?.errors).some((key) => Boolean(key.match(/image/g)[0]))),
-            aborted: false,
-          });
-        }
-      }
-    } finally {
-      fs.rmSync("./src/temp", { recursive: true, force: true });
-    }
+  comic.image = $(elements.cover).attr("src").replace(/\?.*/g, "");
+
+  return comic;
+}
+
+async function createComic(createComicPayload) {
+  try {
+    const createComicResponse = await axios.post(`${process.env.API_ENDPOINT}/api/comics`, createComicPayload, {
+      headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data" },
+    });
+
+    // try {
+    //   axios.post("https://api.indexnow.org/indexnow", {
+    //     host: "https://komikoi.com",
+    //     key: "9da618746c5f47a69d45a7bdbdab8dce",
+    //     keyLocation: "https://komikoi.com/9da618746c5f47a69d45a7bdbdab8dce.txt",
+    //     urlList: [`https://komikoi.com/komik/${createComicResponse.data.payload.slug}`],
+    //   });
+
+    //   logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
+    // } catch (error) {
+    //   logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
+    // }
+
+    logger.info(`[${deviceName}] ✅ Comic created successfuly`);
+
+    return createComicResponse.data;
+  } catch (error) {
+    logger.error(`[${deviceName}] ⚠️ Failed to create comic : ${error.message}`);
+    process.exit(1);
   }
-  console.log("\n🙏 All Done.");
-
-  await browser.close();
-})();
+}
 
 process.on("unhandledRejection", (reason, promise) => {
   console.log("Unhandled Rejection at:", promise, "reason:", reason);
