@@ -56,8 +56,6 @@ const deviceName = process.env.DEVICE_NAME;
       while (chaptersToScrape.length > 0) {
         let chapterToScrape = chaptersToScrape.shift();
 
-        logger.info(`[${deviceName}] Downloading images for chapter ${chapterToScrape.text}`);
-
         const startTime = Date.now();
         const response = await axios.get(chapterToScrape.link);
         const $ = cheerio.load(response.data);
@@ -65,6 +63,7 @@ const deviceName = process.env.DEVICE_NAME;
         const imageUrls = [];
         const isLazyLoad = website.isLazyLoad;
 
+        // Fetch all image urls
         if (isLazyLoad) {
           const noscriptHtml = $("noscript").html();
           const $noscript = cheerio.load(noscriptHtml);
@@ -76,6 +75,27 @@ const deviceName = process.env.DEVICE_NAME;
           $(website.elements.chapter.image).each((index, element) => {
             imageUrls.push(`${$(element).attr("src").replace("https://", "https://i0.wp.com/")}`);
           });
+        }
+
+        // Check if images are cached and not broken
+        try {
+          logger.info(`[${deviceName}] Checking images validity for chapter ${chapterToScrape.text}...`);
+
+          await Promise.all(
+            imageUrls.map((url) =>
+              axios.get(url).catch((error) => {
+                throw { url, error };
+              })
+            )
+          );
+
+          logger.info(`[${deviceName}] All images are valid for chapter ${chapterToScrape.text}`);
+        } catch (error) {
+          logger.info(
+            `[${deviceName}] ⚠️ Broken image found for chapter ${chapterToScrape.text} | URL: ${error.url} | ERROR: ${error.error}`
+          );
+
+          continue;
         }
 
         try {
