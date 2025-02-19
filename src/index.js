@@ -29,12 +29,15 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
   let websiteToScrape = Object.values(WEBSITES);
   let keyword = null;
 
+  const { selectedWebsite } = await askQuestion("website");
+
   if (selectedType === "Manual") {
-    const { selectedWebsite } = await askQuestion("website");
     const { selectedKeyword } = await askQuestion("keyword");
 
     websiteToScrape = [WEBSITES[selectedWebsite]];
     keyword = selectedKeyword;
+  } else if (selectedWebsite !== "All (Cron Only)") {
+    websiteToScrape = [WEBSITES[selectedWebsite]];
   }
 
   for (const website of websiteToScrape) {
@@ -54,15 +57,17 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
       website.comicDelay && (await delay(website.comicDelay));
 
-      const { scrapeMode } = await askQuestion("mode");
-
       logger.info(`[${deviceName}] Fetching Chapters`);
       let chaptersToScrape = comic.scrapeableChapters;
 
-      if (selectedType === "Manual" && scrapeMode === "Single") {
-        const chapterOptions = comic.scrapeableChapters.map((chapter) => chapter.text);
-        const { selectedChapter } = await askQuestion("chapter", chapterOptions);
-        chaptersToScrape = comic.scrapeableChapters.find((chapter) => chapter.text === selectedChapter);
+      if (selectedType === "Manual") {
+        const { scrapeMode } = await askQuestion("mode");
+
+        if (scrapeMode === "Single") {
+          const chapterOptions = comic.scrapeableChapters.map((chapter) => chapter.text);
+          const { selectedChapter } = await askQuestion("chapter", chapterOptions);
+          chaptersToScrape = [comic.scrapeableChapters.find((chapter) => chapter.text === selectedChapter)];
+        }
       }
 
       logger.info(`[${deviceName}] Chapters found : ${chaptersToScrape.length}`);
@@ -165,7 +170,7 @@ async function askQuestion(type, options) {
         name: "selectedWebsite",
         type: "list",
         message: "Pilih website:",
-        choices: Object.keys(WEBSITES),
+        choices: ["All (Cron Only)", ...Object.keys(WEBSITES)],
       },
     ]);
   }

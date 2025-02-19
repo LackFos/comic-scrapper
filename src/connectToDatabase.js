@@ -16,7 +16,7 @@ const connectToDatabase = async () => {
     const firebase = initializeApp(firebaseConfig);
     const db = getFirestore(firebase);
 
-    const testDocRef = doc(db, "similiar-title/test"); // Adjust the path to a document that should exist for the test
+    const testDocRef = doc(db, "status/ping"); // Adjust the path to a document that should exist for the test
     const testDoc = await getDoc(testDocRef);
 
     if (testDoc.exists()) {
