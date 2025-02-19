@@ -4,9 +4,23 @@ import inquirer from "inquirer";
 import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
 import { delay, logger } from "./libs/utils.js";
 import * as cheerio from "cheerio";
+import connectToDatabase from "./connectToDatabase.js";
+import { addDoc, collection, onSnapshot } from "firebase/firestore";
 
 dotenv.config();
 const deviceName = process.env.DEVICE_NAME;
+
+const db = await connectToDatabase();
+let failedJobs = [];
+
+onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
+  failedJobs = snapshot.docs
+    .map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+    .filter((job) => !job.onRetry && !job.aborted);
+});
 
 // Main loop
 (async () => {
@@ -94,6 +108,16 @@ const deviceName = process.env.DEVICE_NAME;
           logger.info(
             `[${deviceName}] ⚠️ Broken image found for chapter ${chapterToScrape.text} | URL: ${error.url} | ERROR: ${error.error}`
           );
+
+          await addDoc(collection(db, "failed-jobs"), {
+            comicId: comic.id ?? null,
+            comicName: comic.title ?? null,
+            chapterNumber: chapterToScrape.text ?? null,
+            latestWebsite: website.domain ?? null,
+            error: error.error.message ?? null,
+            onRetry: false,
+            isCritical: false,
+          });
 
           continue;
         }
