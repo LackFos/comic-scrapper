@@ -1,11 +1,46 @@
 export const WEBSITES = {
+  "komik5.mangatoon.cc": {
+    domain: "komik5.mangatoon.cc",
+    default: "https://komik5.mangatoon.cc",
+    search: "https://komik5.mangatoon.cc/?s=",
+    // comicDelay: 8000,
+    // chapterDelay: 4000,
+    isLazyLoad: true,
+    searchElements: {
+      listTitle: {
+        parent: ".bsx",
+        text: ".tt",
+        link: "a",
+      },
+    },
+    elements: {
+      listTitle: {
+        parent: ".bsx",
+        text: ".tt",
+        link: "a",
+      },
+      title: "h1.entry-title",
+      cover: ".thumb img",
+      status: ".imptdt:nth-of-type(1) i",
+      type: ".imptdt:nth-of-type(2) a",
+      author: ".imptdt:nth-of-type(3) i",
+      genre: ".mgen a",
+      description: ".entry-content p",
+      chapter: {
+        parent: ".eplister .chbox",
+        text: ".chapternum",
+        link: "a",
+        image: "#readerarea img",
+      },
+    },
+  },
   "shinigami07.com": {
     domain: "shinigami07.com",
-    alternative: "komikindo.biz",
-    comicDelay: 8000,
-    chapterDelay: 4000,
     default: "https://shinigami07.com",
     search: "https://shinigami07.com/?post_type=wp-manga&s=",
+    comicDelay: 8000,
+    chapterDelay: 4000,
+    isLazyLoad: true,
     searchElements: {
       listTitle: {
         parent: ".post-title",
