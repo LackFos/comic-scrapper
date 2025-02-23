@@ -88,11 +88,21 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           const $noscript = cheerio.load(noscriptHtml);
 
           $noscript("img").each((index, element) => {
-            imageUrls.push(`${$(element).attr("src").replace("https://", "https://i0.wp.com/")}`);
+            imageUrls.push(
+              `${$(element)
+                .attr("src")
+                .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
+                .replace("https://", "https://i0.wp.com/")}`
+            );
           });
         } else {
           $(website.elements.chapter.image).each((index, element) => {
-            imageUrls.push(`${$(element).attr("src").replace("https://", "https://i0.wp.com/")}`);
+            imageUrls.push(
+              `${$(element)
+                .attr("src")
+                .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
+                .replace("https://", "https://i0.wp.com/")}`
+            );
           });
         }
 
@@ -364,6 +374,11 @@ async function scrapeComic($, elements, name) {
   } catch (error) {
     logger.error(`[${deviceName}] ⚠️ Failed to find genres : ${error.message}`);
   }
+
+  comic.image = $(elements.cover)
+    .attr("src")
+    .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
+    .replace("https://", "https://i0.wp.com/");
 
   return comic;
 }
