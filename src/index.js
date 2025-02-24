@@ -33,9 +33,8 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
   if (selectedType === "Manual") {
     const { selectedKeyword } = await askQuestion("keyword");
-
-    websiteToScrape = [WEBSITES[selectedWebsite]];
     keyword = selectedKeyword;
+    websiteToScrape = [WEBSITES[selectedWebsite]];
   } else if (selectedWebsite !== "All (Cron Only)") {
     websiteToScrape = [WEBSITES[selectedWebsite]];
   }
@@ -72,15 +71,24 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
       logger.info(`[${deviceName}] Chapters found : ${chaptersToScrape.length}`);
 
-      while (chaptersToScrape.length > 0) {
-        let chapterToScrape = chaptersToScrape.shift();
+      while (chaptersToScrape.length > 0 || failedJobs.length > 0) {
+        const failedJob = failedJobs[0];
+        const isPerfomingFailedJob = Boolean(failedJob);
+
+        let alternativeWebsite = isPerfomingFailedJob ? WEBSITES[WEBSITES[failedJob.website].alternative] : null;
+        let chapterToScrape = isPerfomingFailedJob ? { link: failedJob.link, value: failedJob.value } : chaptersToScrape.shift();
+
+        if (isPerfomingFailedJob) {
+          logger.info(`[${deviceName}] 😇 Interupted, failed job exists!`);
+          await updateDoc(doc(db, "failed-jobs", failedJob.id), { onRetry: true });
+        }
 
         const startTime = Date.now();
         const response = await axios.get(chapterToScrape.link);
         const $ = cheerio.load(response.data);
 
         const imageUrls = [];
-        const isLazyLoad = website.isLazyLoad;
+        const isLazyLoad = isPerfomingFailedJob ? alternativeWebsite.isLazyLoad : website.isLazyLoad;
 
         // Fetch all image urls
         if (isLazyLoad) {
@@ -96,7 +104,9 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             );
           });
         } else {
-          $(website.elements.chapter.image).each((index, element) => {
+          const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
+
+          $(chapterImageElement).each((index, element) => {
             imageUrls.push(
               `${$(element)
                 .attr("src")
@@ -128,7 +138,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             comicId: comic.id ?? null,
             comicName: comic.title ?? null,
             chapterNumber: chapterToScrape.text ?? null,
-            latestWebsite: website.domain ?? null,
+            latestWebsite: isPerfomingFailedJob ? alternativeWebsite.domain : website.domain,
             error: error.error.message ?? null,
             onRetry: false,
             isCritical: false,
