@@ -1,4 +1,41 @@
 export const WEBSITES = {
+
+
+  "komikdewasa.mom": {
+    domain: "komikdewasa.mom",
+    default: "https://komikdewasa.mom",
+    search: "https://komikdewasa.mom/?s=",
+    isLazyLoad: true,
+    searchElements: {
+      listTitle: {
+        parent: ".bsx",
+        text: ".tt",
+        link: "a",
+      },
+    },
+    elements: {
+      listTitle: {
+        parent: ".bsx",
+        text: ".tt",
+        link: "a",
+      },
+      title: "h1.entry-title",
+      cover: ".thumb img",
+      status: ".infotable tr:nth-of-type(2) > td:nth-of-type(2)",  
+      type: ".infotable tr:nth-of-type(3) > td:nth-of-type(2)",
+      author: ".infotable .author i",
+      genre: ".seriestugenre a",
+      description: "entry-content p",
+      chapter: {
+        parent: ".eplister .chbox",
+        text: ".eph-num",
+        link: "a",
+        image: "#readerarea img",
+      },
+    },
+  },
+
+
   "mahnwadesu": {
     domain: "baca03.manhwadesu.co.in",
     default: "https://baca03.manhwadesu.co.in",
@@ -67,7 +104,7 @@ export const WEBSITES = {
     },
   },
 
-  "komikdewasa": {
+  "komikdewasa.art": {
     domain: "komikdewasa.art",
     default: "https://komikdewasa.art",
     search: "https://komikdewasa.art/?s=",
@@ -81,17 +118,17 @@ export const WEBSITES = {
     },
     elements: {
       listTitle: {
-        parent: ".bsx",
-        text: ".tt",
-        link: "a",
+        parent: ".luf",
+        text: "h4",
+        link: "a.series",
       },
       title: "h1.entry-title",
       cover: ".thumb img",
-      status: ".infotable tr:nth-child(1) td:nth-child(2)",  
+      status: ".infotable tr:nth-child(2) td:nth-child(2)",  
       type: ".infotable tr:nth-child(2) td:nth-child(2)",
       author: ".infotable .author i",
       genre: ".seriestugenre a",
-      description: "",
+      description: "entry-content p",
       chapter: {
         parent: ".eplister .chbox",
         text: ".eph-num",
@@ -134,6 +171,142 @@ export const WEBSITES = {
       },
     },
 
+  },
+
+  "sxkomik": {
+    domain: "www.sxkomik.art",
+    default: "https://www.sxkomik.art/",
+    search: "https://www.sxkomik.art/search?q=",
+    isLazyLoad: true,
+    searchElements: {
+      listTitle: {
+        parent: ".pt-2",
+        text: ".text-sm",
+        link: "a",
+      },
+    },
+    elements: {
+      listTitle: {
+        parent: ".pt-2",
+        text: ".text-sm",
+        link: "a",
+      },
+      title: "h1.text-2xl",
+      cover: ".rounded-b-md img",
+      status: ".bg-base-100 .flex:nth-child(1) span:nth-child(2)",
+      type: ".bg-base-100 .flex:nth-child(2) span:nth-child(2)",
+      author: ".bg-base-100 .flex:nth-child(2) span:nth-child(2)",
+      genre: ".flex a",
+      description: ".Sinopsis p",
+      chapter: {
+        parent: ".flex",
+        text: "#text",
+        link: "a",
+        image: ".max-w-4xl img",
+      },
+    },
+  },
+
+  "manhwadesu" : {
+    domain: "manhwadesu.ws",
+    default: "https://manhwadesu.ws/",
+    search: "https://manhwadesu.ws/?s=",
+    isLazyLoad: true,
+    searchElements: {
+      listTitle: {
+        parent: ".bsx",
+        text: ".tt",
+        link: "a",
+      },
+    },
+    elements: {
+      listTitle: {
+        parent: ".luf",
+        text: "h4",
+        link: "a",
+      },
+      title: "h1.entry-title",
+      cover: ".thumb img",
+      status: ".imptdt:nth-of-type(1) i",
+      type: ".imptdt:nth-of-type(2) a",
+      author: ".imptdt:nth-of-type(4) i",
+      genre: ".mgen a",
+      description: ".entry-content p",
+      chapter: {
+        parent: ".eplister .chbox",
+        text: ".chapternum",
+        link: "a",
+        image: "#readerarea img",
+      },
+    },
+  },
+
+  "baca03.manhwadesu" : {
+    domain: "baca03.manhwadesu.co.in",
+    default: "https://baca03.manhwadesu.co.in",
+    search: "https://baca03.manhwadesu.co.in/?s=",
+    isLazyLoad: true,
+    searchElements: {
+      listTitle: {
+        parent: ".bsx",
+        text: ".tt",
+        link: "a",
+      },
+    },
+    elements: {
+      listTitle: {
+        parent: ".luf",
+        text: "h4",
+        link: "a",
+      },
+      title: "h1.entry-title",
+      cover: ".thumb img",
+      status: ".imptdt:nth-of-type(1) i",
+      type: ".imptdt:nth-of-type(2) a",
+      author: ".imptdt:nth-of-type(4) i",
+      genre: ".mgen a",
+      description: ".entry-content p",
+      chapter: {
+        parent: ".eplister .chbox",
+        text: ".chapternum",
+        link: "a",
+        image: "#readerarea img",
+      },
+    },
+  },
+
+"mangasusu.sbs" : {
+    domain: "mangasusu.sbs",
+    default: "https://mangasusu.sbs",
+    search: "https://mangasusu.sbs/?s=",
+    isLazyLoad: true,
+    searchElements: {
+      listTitle: {
+        parent: ".bsx",
+        text: ".tt",
+        link: "a",
+      },
+    },
+    elements: {
+      listTitle: {
+        parent: ".luf",
+        text: "h4",
+        link: "a",
+      },
+      title: "h1.entry-title",
+      cover: ".thumb img",
+      status: ".imptdt:nth-of-type(1) i",
+      type: ".imptdt:nth-of-type(2) a",
+      author: ".imptdt:nth-of-type(3) i",
+      genre: ".mgen a",
+      description: ".entry-content p",
+      chapter: {
+        parent: ".eplister .chbox",
+        text: ".chapternum",
+        link: "a",
+        image: "#readerarea img",
+      },
+    },
   },
 
   "komik5.mangatoon.cc": {
