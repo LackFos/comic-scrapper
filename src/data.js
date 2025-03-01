@@ -1,6 +1,4 @@
 export const WEBSITES = {
-
-
   "komikdewasa.mom": {
     domain: "komikdewasa.mom",
     default: "https://komikdewasa.mom",
@@ -21,7 +19,7 @@ export const WEBSITES = {
       },
       title: "h1.entry-title",
       cover: ".thumb img",
-      status: ".infotable tr:nth-of-type(2) > td:nth-of-type(2)",  
+      status: ".infotable tr:nth-of-type(2) > td:nth-of-type(2)",
       type: ".infotable tr:nth-of-type(3) > td:nth-of-type(2)",
       author: ".infotable .author i",
       genre: ".seriestugenre a",
@@ -35,8 +33,7 @@ export const WEBSITES = {
     },
   },
 
-
-  "mahnwadesu": {
+  mahnwadesu: {
     domain: "baca03.manhwadesu.co.in",
     default: "https://baca03.manhwadesu.co.in",
     search: "https://baca03.manhwadesu.co.in/?s=",
@@ -67,10 +64,10 @@ export const WEBSITES = {
         link: "a",
         image: "#readerarea img",
       },
-    }
+    },
   },
 
-  "lianscans": {
+  lianscans: {
     domain: "lianscans.com",
     default: "https://www.lianscans.com",
     search: "https://www.lianscans.com/?s=",
@@ -99,7 +96,7 @@ export const WEBSITES = {
         parent: ".eplister .chbox",
         text: ".chapternum",
         link: "a",
-        image: "#readerarea img",
+        image: "#readerarea",
       },
     },
   },
@@ -124,7 +121,7 @@ export const WEBSITES = {
       },
       title: "h1.entry-title",
       cover: ".thumb img",
-      status: ".infotable tr:nth-child(2) td:nth-child(2)",  
+      status: ".infotable tr:nth-child(2) td:nth-child(2)",
       type: ".infotable tr:nth-child(2) td:nth-child(2)",
       author: ".infotable .author i",
       genre: ".seriestugenre a",
@@ -138,7 +135,7 @@ export const WEBSITES = {
     },
   },
 
-  "sekaikomik": {
+  sekaikomik: {
     domain: "www.sekaikomik.lat",
     default: "https://www.sekaikomik.lat",
     search: "https://www.sekaikomik.lat/?s=",
@@ -170,10 +167,9 @@ export const WEBSITES = {
         image: "#readerarea img",
       },
     },
-
   },
 
-  "sxkomik": {
+  sxkomik: {
     domain: "www.sxkomik.art",
     default: "https://www.sxkomik.art/",
     search: "https://www.sxkomik.art/search?q=",
@@ -207,7 +203,7 @@ export const WEBSITES = {
     },
   },
 
-  "manhwadesu" : {
+  manhwadesu: {
     domain: "manhwadesu.ws",
     default: "https://manhwadesu.ws/",
     search: "https://manhwadesu.ws/?s=",
@@ -241,7 +237,7 @@ export const WEBSITES = {
     },
   },
 
-  "baca03.manhwadesu" : {
+  "baca03.manhwadesu": {
     domain: "baca03.manhwadesu.co.in",
     default: "https://baca03.manhwadesu.co.in",
     search: "https://baca03.manhwadesu.co.in/?s=",
@@ -275,7 +271,7 @@ export const WEBSITES = {
     },
   },
 
-"mangasusu.sbs" : {
+  "mangasusu.sbs": {
     domain: "mangasusu.sbs",
     default: "https://mangasusu.sbs",
     search: "https://mangasusu.sbs/?s=",
