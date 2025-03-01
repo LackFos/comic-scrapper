@@ -92,7 +92,9 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
         // Fetch all image urls
         if (isLazyLoad) {
-          const noscriptHtml = $("noscript").html();
+          const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
+
+          const noscriptHtml = $(`${chapterImageElement} noscript`).html();
           const $noscript = cheerio.load(noscriptHtml);
 
           $noscript("img").each((index, element) => {
