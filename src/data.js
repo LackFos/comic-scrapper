@@ -139,7 +139,6 @@ export const WEBSITES = {
     domain: "www.sekaikomik.lat",
     default: "https://www.sekaikomik.lat",
     search: "https://www.sekaikomik.lat/?s=",
-    isLazyLoad: true,
     searchElements: {
       listTitle: {
         parent: ".bsx",
@@ -241,7 +240,7 @@ export const WEBSITES = {
     domain: "baca03.manhwadesu.co.in",
     default: "https://baca03.manhwadesu.co.in",
     search: "https://baca03.manhwadesu.co.in/?s=",
-    isLazyLoad: true,
+    isTsRead: true,
     searchElements: {
       listTitle: {
         parent: ".bsx",
@@ -275,6 +274,7 @@ export const WEBSITES = {
     domain: "mangasusu.sbs",
     default: "https://mangasusu.sbs",
     search: "https://mangasusu.sbs/?s=",
+    isTsRead: true,
     isLazyLoad: true,
     searchElements: {
       listTitle: {

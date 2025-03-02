@@ -88,34 +88,58 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         const $ = cheerio.load(response.data);
 
         const imageUrls = [];
+        const isTsRead = isPerfomingFailedJob ? alternativeWebsite.isTsRead : website.isTsRead;
         const isLazyLoad = isPerfomingFailedJob ? alternativeWebsite.isLazyLoad : website.isLazyLoad;
 
         // Fetch all image urls
-        if (isLazyLoad) {
-          const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
+        if (isTsRead) {
+          const scriptTag = $("script")
+            .filter((i, el) => $(el).html().includes("ts_reader.run("))
+            .html();
 
-          const noscriptHtml = $(`${chapterImageElement} noscript`).html();
-          const $noscript = cheerio.load(noscriptHtml);
+          if (!scriptTag) {
+            console.log("Script ts_reader.run() tidak ditemukan.");
+            return;
+          }
 
-          $noscript("img").each((index, element) => {
-            imageUrls.push(
-              `${$(element)
-                .attr("src")
-                .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
-                .replace("https://", "https://i0.wp.com/")}`
-            );
+          const jsonMatch = scriptTag.match(/ts_reader\.run\((.*?)\);/s);
+          if (!jsonMatch) {
+            console.log("Data tidak ditemukan dalam ts_reader.run().");
+            return;
+          }
+
+          const jsonData = JSON.parse(jsonMatch[1]);
+
+          jsonData.sources[0].images.forEach((image) => {
+            imageUrls.push(image.replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://").replace("https://", "https://i0.wp.com/"));
           });
         } else {
-          const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
+          if (isLazyLoad) {
+            const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
 
-          $(chapterImageElement).each((index, element) => {
-            imageUrls.push(
-              `${$(element)
-                .attr("src")
-                .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
-                .replace("https://", "https://i0.wp.com/")}`
-            );
-          });
+            const noscriptHtml = $(`${chapterImageElement} noscript`).html();
+            const $noscript = cheerio.load(noscriptHtml);
+
+            $noscript("img").each((index, element) => {
+              imageUrls.push(
+                `${$(element)
+                  .attr("src")
+                  .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
+                  .replace("https://", "https://i0.wp.com/")}`
+              );
+            });
+          } else {
+            const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
+
+            $(chapterImageElement).each((index, element) => {
+              imageUrls.push(
+                `${$(element)
+                  .attr("src")
+                  .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
+                  .replace("https://", "https://i0.wp.com/")}`
+              );
+            });
+          }
         }
 
         // Check if images are cached and not broken
