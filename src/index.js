@@ -113,7 +113,12 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           const jsonData = JSON.parse(jsonMatch[1]);
 
           jsonData.sources[0].images.forEach((image) => {
-            imageUrls.push(image.replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://").replace("https://", "https://i0.wp.com/"));
+            imageUrls.push(
+              image
+                .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
+                .replace("https://", "https://i0.wp.com/")
+                .replace(/\?.*$/, "")
+            );
           });
         } else {
           if (isLazyLoad) {
@@ -127,7 +132,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
                 `${$(element)
                   .attr("src")
                   .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
-                  .replace("https://", "https://i0.wp.com/")}`
+                  .replace("https://", "https://i0.wp.com/")}`.replace(/\?.*$/, "")
               );
             });
           } else {
@@ -138,7 +143,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
                 `${$(element)
                   .attr("src")
                   .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
-                  .replace("https://", "https://i0.wp.com/")}`
+                  .replace("https://", "https://i0.wp.com/")}`.replace(/\?.*$/, "")
               );
             });
           }
@@ -417,7 +422,8 @@ async function scrapeComic($, elements, name) {
   comic.image = $(elements.cover)
     .attr("src")
     .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
-    .replace("https://", "https://i0.wp.com/");
+    .replace("https://", "https://i0.wp.com/")
+    .replace(/\?.*$/, "");
 
   return comic;
 }
