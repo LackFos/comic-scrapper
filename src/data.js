@@ -3,7 +3,8 @@ export const WEBSITES = {
     domain: "komikdewasa.mom",
     default: "https://komikdewasa.mom",
     search: "https://komikdewasa.mom/?s=",
-    isLazyLoad: true,
+    alternative: "baca03.mahnwadesu.co.in",
+    isTsRead: true,
     searchElements: {
       listTitle: {
         parent: ".bsx",
@@ -28,16 +29,17 @@ export const WEBSITES = {
         parent: ".eplister .chbox",
         text: ".eph-num",
         link: "a",
-        image: "#readerarea img",
+        image: "#readerarea",
       },
     },
   },
 
-  mahnwadesu: {
+  "baca03.mahnwadesu.co.in": {
     domain: "baca03.manhwadesu.co.in",
     default: "https://baca03.manhwadesu.co.in",
     search: "https://baca03.manhwadesu.co.in/?s=",
-    isLazyLoad: true,
+    alternative: "lianscans.com",
+    isTsRead: true,
     searchElements: {
       listTitle: {
         parent: ".bsx",
@@ -67,10 +69,11 @@ export const WEBSITES = {
     },
   },
 
-  lianscans: {
+  "lianscans.com": {
     domain: "lianscans.com",
     default: "https://www.lianscans.com",
     search: "https://www.lianscans.com/?s=",
+    alternative: "sekaikomik.lat",
     isLazyLoad: true,
     searchElements: {
       listTitle: {
@@ -101,44 +104,45 @@ export const WEBSITES = {
     },
   },
 
-  "komikdewasa.art": {
-    domain: "komikdewasa.art",
-    default: "https://komikdewasa.art",
-    search: "https://komikdewasa.art/?s=",
-    isLazyLoad: true,
-    searchElements: {
-      listTitle: {
-        parent: ".bsx",
-        text: ".tt",
-        link: "a",
-      },
-    },
-    elements: {
-      listTitle: {
-        parent: ".luf",
-        text: "h4",
-        link: "a.series",
-      },
-      title: "h1.entry-title",
-      cover: ".thumb img",
-      status: ".infotable tr:nth-child(2) td:nth-child(2)",
-      type: ".infotable tr:nth-child(2) td:nth-child(2)",
-      author: ".infotable .author i",
-      genre: ".seriestugenre a",
-      description: "entry-content p",
-      chapter: {
-        parent: ".eplister .chbox",
-        text: ".eph-num",
-        link: "a",
-        image: "#readerarea img",
-      },
-    },
-  },
+  // "komikdewasa.art": {
+  //   domain: "komikdewasa.art",
+  //   default: "https://komikdewasa.art",
+  //   search: "https://komikdewasa.art/?s=",
+  //   isTsRead: true,
+  //   searchElements: {
+  //     listTitle: {
+  //       parent: ".bsx",
+  //       text: ".tt",
+  //       link: "a",
+  //     },
+  //   },
+  //   elements: {
+  //     listTitle: {
+  //       parent: ".bs .bsx",
+  //       text: ".tt",
+  //       link: "a",
+  //     },
+  //     title: "h1.entry-title",
+  //     cover: ".thumb img",
+  //     status: ".infotable tr:nth-child(2) td:nth-child(2)",
+  //     type: ".infotable tr:nth-child(2) td:nth-child(2)",
+  //     author: ".infotable .author i",
+  //     genre: ".seriestugenre a",
+  //     description: "entry-content p",
+  //     chapter: {
+  //       parent: ".eplister .chbox",
+  //       text: ".eph-num",
+  //       link: "a",
+  //       image: "#readerarea img",
+  //     },
+  //   },
+  // },
 
-  sekaikomik: {
+  "sekaikomik.lat": {
     domain: "www.sekaikomik.lat",
     default: "https://www.sekaikomik.lat",
     search: "https://www.sekaikomik.lat/?s=",
+    alternative: "manhwadesu.ws",
     searchElements: {
       listTitle: {
         parent: ".bsx",
@@ -168,45 +172,46 @@ export const WEBSITES = {
     },
   },
 
-  sxkomik: {
-    domain: "www.sxkomik.art",
-    default: "https://www.sxkomik.art/",
-    search: "https://www.sxkomik.art/search?q=",
-    isLazyLoad: true,
-    searchElements: {
-      listTitle: {
-        parent: ".pt-2",
-        text: ".text-sm",
-        link: "a",
-      },
-    },
-    elements: {
-      listTitle: {
-        parent: ".pt-2",
-        text: ".text-sm",
-        link: "a",
-      },
-      title: "h1.text-2xl",
-      cover: ".rounded-b-md img",
-      status: ".bg-base-100 .flex:nth-child(1) span:nth-child(2)",
-      type: ".bg-base-100 .flex:nth-child(2) span:nth-child(2)",
-      author: ".bg-base-100 .flex:nth-child(2) span:nth-child(2)",
-      genre: ".flex a",
-      description: ".Sinopsis p",
-      chapter: {
-        parent: ".flex",
-        text: "#text",
-        link: "a",
-        image: ".max-w-4xl img",
-      },
-    },
-  },
+  // "sxkomik.art": {
+  //   domain: "www.sxkomik.art",
+  //   default: "https://www.sxkomik.art/",
+  //   search: "https://www.sxkomik.art/search?q=",
+  //   isLazyLoad: true,
+  //   searchElements: {
+  //     listTitle: {
+  //       parent: ".pt-2",
+  //       text: ".text-sm",
+  //       link: "a",
+  //     },
+  //   },
+  //   elements: {
+  //     listTitle: {
+  //       parent: ".pt-2",
+  //       text: ".text-sm",
+  //       link: "a",
+  //     },
+  //     title: "h1.text-2xl",
+  //     cover: ".rounded-b-md img",
+  //     status: ".bg-base-100 .flex:nth-child(1) span:nth-child(2)",
+  //     type: ".bg-base-100 .flex:nth-child(2) span:nth-child(2)",
+  //     author: ".bg-base-100 .flex:nth-child(2) span:nth-child(2)",
+  //     genre: ".flex a",
+  //     description: ".Sinopsis p",
+  //     chapter: {
+  //       parent: ".flex",
+  //       text: "#text",
+  //       link: "a",
+  //       image: ".max-w-4xl img",
+  //     },
+  //   },
+  // },
 
-  manhwadesu: {
+  "manhwadesu.ws": {
     domain: "manhwadesu.ws",
     default: "https://manhwadesu.ws/",
     search: "https://manhwadesu.ws/?s=",
-    isLazyLoad: true,
+    alternative: "baca03.manhwadesu.co.in",
+    isTsRead: true,
     searchElements: {
       listTitle: {
         parent: ".bsx",
@@ -231,15 +236,16 @@ export const WEBSITES = {
         parent: ".eplister .chbox",
         text: ".chapternum",
         link: "a",
-        image: "#readerarea img",
+        image: "#readerarea",
       },
     },
   },
 
-  "baca03.manhwadesu": {
+  "baca03.manhwadesu.co.in": {
     domain: "baca03.manhwadesu.co.in",
     default: "https://baca03.manhwadesu.co.in",
     search: "https://baca03.manhwadesu.co.in/?s=",
+    alternative: "mangasusu.sbs",
     isTsRead: true,
     searchElements: {
       listTitle: {
@@ -274,8 +280,8 @@ export const WEBSITES = {
     domain: "mangasusu.sbs",
     default: "https://mangasusu.sbs",
     search: "https://mangasusu.sbs/?s=",
+    alternative: "komik5.mangatoon.cc",
     isTsRead: true,
-    isLazyLoad: true,
     searchElements: {
       listTitle: {
         parent: ".bsx",
@@ -309,9 +315,8 @@ export const WEBSITES = {
     domain: "komik5.mangatoon.cc",
     default: "https://komik5.mangatoon.cc",
     search: "https://komik5.mangatoon.cc/?s=",
-    // comicDelay: 8000,
-    // chapterDelay: 4000,
-    isLazyLoad: true,
+    alternative: "komikdewasa.mom",
+    isTsRead: true,
     searchElements: {
       listTitle: {
         parent: ".bsx",
@@ -337,206 +342,6 @@ export const WEBSITES = {
         text: ".chapternum",
         link: "a",
         image: "#readerarea img",
-      },
-    },
-  },
-  "shinigami07.com": {
-    domain: "shinigami07.com",
-    default: "https://shinigami07.com",
-    search: "https://shinigami07.com/?post_type=wp-manga&s=",
-    comicDelay: 8000,
-    chapterDelay: 4000,
-    isLazyLoad: true,
-    searchElements: {
-      listTitle: {
-        parent: ".post-title",
-        text: "h3",
-        link: "a",
-      },
-    },
-    elements: {
-      listTitle: {
-        parent: ".latest .col-6.col-sm-6.col-md-6.col-xl-3",
-        text: ".series-title",
-        link: ".series-link",
-      },
-      title: ".post-title h1",
-      cover: ".summary_image img",
-      type: ".post-content .post-content_item:nth-of-type(7) > .summary-content",
-      author: ".post-content .post-content_item:nth-of-type(4) > .summary-content",
-      status: ".post-status .post-content_item:nth-of-type(2) > .summary-content",
-      description: ".description-summary",
-      genre: ".genres-content a",
-      chapter: {
-        parent: ".wp-manga-chapter",
-        text: ".chapter-manhwa-title",
-        link: ".chapter-link a",
-        image: ".image-vertical img",
-      },
-    },
-  },
-  "komiku.id": {
-    domain: "komiku.id",
-    alternative: "komikindo.biz",
-    default: "https://komiku.id/pustaka",
-    search: "https://komiku.id/?post_type=manga&s=",
-    elements: {
-      listTitle: {
-        parent: ".kan",
-        text: "h3",
-        link: "a",
-      },
-      title: ".inftable tr:nth-of-type(1) > td:nth-of-type(2)",
-      cover: ".ims img",
-      type: ".inftable tr:nth-of-type(3) > td:nth-of-type(2)",
-      author: ".inftable tr:nth-of-type(5) > td:nth-of-type(2)",
-      status: ".inftable tr:nth-of-type(6) > td:nth-of-type(2)",
-      description: ".desc",
-      genre: "li.genre",
-      chapter: {
-        parent: "td.judulseries",
-        text: "a span",
-        link: "a",
-        image: ".ww",
-      },
-    },
-  },
-  "komiku.com": {
-    domain: "komiku.com",
-    alternative: "komikindo.biz",
-    default: "https://komiku.com/manga/?order=update",
-    search: "https://komiku.com/?s=",
-    elements: {
-      listTitle: {
-        parent: ".bs",
-        text: ".tt",
-        link: "a",
-      },
-      title: "h1.entry-title",
-      cover: ".thumb img",
-      type: ".infotable tr:nth-of-type(3) > td:nth-of-type(2)",
-      author: ".infotable tr:nth-of-type(5) > td:nth-of-type(2)",
-      status: ".infotable tr:nth-of-type(2) > td:nth-of-type(2)",
-      description: ".entry-content p",
-      genre: ".seriestugenre a",
-      chapter: {
-        parent: ".clstyle li",
-        text: ".chapternum",
-        link: "a",
-        image: "#readerarea img",
-      },
-    },
-  },
-  "westmanga.fun": {
-    domain: "westmanga.fun",
-    alternative: "komikindo.biz",
-    default: "https://westmanga.fun",
-    search: "https://westmanga.fun/?s=",
-    isLazyLoad: true,
-    searchElements: {
-      listTitle: {
-        parent: ".postbody .bsx",
-        text: ".tt",
-        link: "a",
-      },
-    },
-    elements: {
-      listTitle: {
-        parent: ".bixbox:nth-of-type(2) .bsx",
-        text: ".tt a",
-        link: ".tt a",
-      },
-      title: ".entry-title",
-      cover: ".thumb img",
-      type: "tr:nth-of-type(2) > td:nth-of-type(2)",
-      author: "tr:nth-of-type(3) > td:nth-of-type(2)",
-      status: "tr:nth-of-type(1) > td:nth-of-type(2)",
-      description: ".entry-content",
-      genre: ".seriestugenre a",
-      chapter: {
-        parent: ".chbox",
-        text: ".chapternum",
-        link: "a",
-        image: "#readerarea img",
-      },
-    },
-  },
-  "soulscans.my.id": {
-    domain: "soulscans.my.id",
-    alternative: "komikindo.biz",
-    default: "https://soulscans.my.id",
-    search: "https://soulscans.my.id/?s=",
-    isLazyLoad: true,
-    elements: {
-      listTitle: {
-        parent: ".bixbox:nth-of-type(2) .bsx",
-        text: ".tt",
-        link: "a",
-      },
-      title: "h1",
-      cover: ".thumb img",
-      type: ".imptdt:nth-of-type(2) a",
-      author: ".imptdt:nth-of-type(4) i",
-      status: ".imptdt:nth-of-type(1) i",
-      description: ".entry-content",
-      genre: ".mgen a",
-      chapter: {
-        parent: "#chapterlist li",
-        text: ".chapternum",
-        link: "a",
-        image: "#readerarea img",
-      },
-    },
-  },
-  "monzeekomik.my.id": {
-    domain: "monzeekomik.my.id",
-    alternative: "komikindo.biz",
-    default: "https://monzeekomik.my.id",
-    search: "https://monzeekomik.my.id/?s=",
-    elements: {
-      listTitle: {
-        parent: ".bixbox:nth-of-type(2) .uta",
-        text: "h4",
-        link: "a.series",
-      },
-      title: "h1",
-      cover: ".thumb img",
-      type: ".imptdt:nth-of-type(2) a",
-      // author: ".imptdt:nth-of-type(4) i",
-      // status: ".imptdt:nth-of-type(1) i",
-      description: ".entry-content",
-      genre: ".mgen a",
-      chapter: {
-        parent: "#chapterlist li",
-        text: ".chapternum",
-        link: "a",
-        image: "#readerarea img",
-      },
-    },
-  },
-  "komikindo2.com": {
-    domain: "komikindo2.com",
-    alternative: "komiku.com",
-    default: "https://komikindo2.com/komik-terbaru/",
-    search: "https://komikindo2.com/?s=",
-    elements: {
-      listTitle: {
-        parent: ".animepost",
-        text: "h4",
-        link: ".animposx > a",
-      },
-      title: ".infoanime h1",
-      cover: ".thumb img",
-      type: ".spe span:nth-of-type(7) > a",
-      author: ".spe span:nth-of-type(3)",
-      status: ".spe span:nth-of-type(2)",
-      description: ".desc p",
-      genre: ".genre-info a",
-      chapter: {
-        parent: ".listeps li",
-        text: ".lchx",
-        link: ".lchx a",
-        image: ".chapter-image img",
       },
     },
   },
