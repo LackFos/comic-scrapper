@@ -178,19 +178,17 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         try {
           logger.info(`[${deviceName}] Checking images validity for chapter ${chapterToScrape.text}...`);
 
-          const results = await Promise.allSettled(imageUrls.map((url) => axios.get(url)));
-
-          results.forEach((result) => {
-            if (result.status === "rejected") {
-              const { url, reason: error } = result;
-              throw { url, error };
-            }
-          });
+          for (const url of imageUrls) {
+            await axios.get(url);
+          }
 
           logger.info(`[${deviceName}] All images are valid for chapter ${chapterToScrape.text}`);
         } catch (error) {
+          const failedUrl = error.config?.url || "Unknown URL";
+          const errorMessage = error.response?.status ? `HTTP ${error.response.status} - ${error.response.statusText}` : error.message;
+
           logger.info(
-            `[${deviceName}] ⚠️ Broken image found for chapter ${chapterToScrape.text} | URL: ${error.url} | ERROR: ${error.error}`
+            `[${deviceName}] ⚠️ Broken image found for chapter ${chapterToScrape.text} | URL: ${failedUrl} | ERROR: ${errorMessage}`
           );
 
           if (isPerfomingFailedJob) {
@@ -205,7 +203,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
               comicName: comic.title ?? null,
               chapterNumber: chapterToScrape.text ?? null,
               latestWebsite: isPerfomingFailedJob ? alternativeWebsite.domain : website.domain,
-              error: error.error.message ?? null,
+              error: error.error?.message ?? null,
               onRetry: false,
               isCritical: false,
             });
