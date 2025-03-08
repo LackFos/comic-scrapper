@@ -47,6 +47,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
     if (selectedType === "Manual") {
       const titleOptions = comicToScrape.map((title) => title.text);
+
       const { selectedTitle } = await askQuestion("title", titleOptions);
       comicToScrape = [comicToScrape.find((title) => title.text === selectedTitle)];
     }
@@ -84,6 +85,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         }
 
         const startTime = Date.now();
+
         const response = await axios.get(chapterToScrape.link);
         const $ = cheerio.load(response.data);
 
@@ -146,13 +148,14 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         try {
           logger.info(`[${deviceName}] Checking images validity for chapter ${chapterToScrape.text}...`);
 
-          await Promise.all(
-            imageUrls.map((url) =>
-              axios.get(url).catch((error) => {
-                throw { url, error };
-              })
-            )
-          );
+          const results = await Promise.allSettled(imageUrls.map((url) => axios.get(url)));
+
+          results.forEach((result) => {
+            if (result.status === "rejected") {
+              const { url, reason: error } = result;
+              throw { url, error };
+            }
+          });
 
           logger.info(`[${deviceName}] All images are valid for chapter ${chapterToScrape.text}`);
         } catch (error) {
