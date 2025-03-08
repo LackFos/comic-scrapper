@@ -138,7 +138,7 @@ export const WEBSITES = {
   //   },
   // },
 
-  "sekaikomik.lat": {
+  "www.sekaikomik.lat": {
     domain: "www.sekaikomik.lat",
     default: "https://www.sekaikomik.lat",
     search: "https://www.sekaikomik.lat/?s=",
