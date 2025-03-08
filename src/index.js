@@ -5,7 +5,7 @@ import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
 import { delay, logger } from "./libs/utils.js";
 import * as cheerio from "cheerio";
 import connectToDatabase from "./connectToDatabase.js";
-import { addDoc, collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from "firebase/firestore";
 
 dotenv.config();
 const deviceName = process.env.DEVICE_NAME;
@@ -193,7 +193,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
           if (isPerfomingFailedJob) {
             await updateDoc(doc(collection(db, "failed-jobs"), failedJob.id), {
-              error: error.error.message,
+              error: errorMessage,
               onRetry: false,
               latestWebsite: website.domain,
             });
@@ -203,7 +203,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
               comicName: comic.title ?? null,
               chapterNumber: chapterToScrape.text ?? null,
               latestWebsite: isPerfomingFailedJob ? alternativeWebsite.domain : website.domain,
-              error: error.error?.message ?? null,
+              error: errorMessage,
               onRetry: false,
               isCritical: false,
             });
@@ -236,6 +236,10 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
           // } catch (error) {
           //   logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
           // }
+
+          if (isPerfomingFailedJob) {
+            await deleteDoc(doc(collection(db, "failed-jobs"), failedJob.id));
+          }
 
           logger.info(`[${deviceName}] 🎉 Chapter ${chapterToScrape.text} processed in ${(Date.now() - startTime) / 1000} seconds`);
         } catch (error) {
