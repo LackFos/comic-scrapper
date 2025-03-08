@@ -5,7 +5,7 @@ import { WEBSITES, TYPES, STATUSES, GENRES } from "./data.js";
 import { delay, logger } from "./libs/utils.js";
 import * as cheerio from "cheerio";
 import connectToDatabase from "./connectToDatabase.js";
-import { addDoc, collection, onSnapshot } from "firebase/firestore";
+import { addDoc, collection, doc, onSnapshot, updateDoc } from "firebase/firestore";
 
 dotenv.config();
 const deviceName = process.env.DEVICE_NAME;
@@ -76,12 +76,37 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
         const failedJob = failedJobs[0];
         const isPerfomingFailedJob = Boolean(failedJob);
 
-        let alternativeWebsite = isPerfomingFailedJob ? WEBSITES[WEBSITES[failedJob.website].alternative] : null;
-        let chapterToScrape = isPerfomingFailedJob ? { link: failedJob.link, value: failedJob.value } : chaptersToScrape.shift();
+        let alternativeWebsite = isPerfomingFailedJob ? WEBSITES[WEBSITES[failedJob.latestWebsite].alternative] : null;
+
+        let chapterToScrape = isPerfomingFailedJob ? { link: null, text: failedJob.chapterNumber } : chaptersToScrape.shift();
 
         if (isPerfomingFailedJob) {
           logger.info(`[${deviceName}] 😇 Interupted, failed job exists!`);
           await updateDoc(doc(db, "failed-jobs", failedJob.id), { onRetry: true });
+
+          const alternativeComic = await axios.get(`${alternativeWebsite.search}${failedJob.comicName}`);
+          const $alternativeComic = cheerio.load(alternativeComic.data);
+
+          const matchedComicLink = $alternativeComic(
+            `${alternativeWebsite.searchElements.listTitle.parent} ${alternativeWebsite.searchElements.listTitle.link}`
+          ).attr("href");
+
+          const alternativeChapter = await axios.get(matchedComicLink);
+          const $alternativeChapter = cheerio.load(alternativeChapter.data);
+
+          const matchedChapter = $alternativeChapter(alternativeWebsite.elements.chapter.parent) // No need for `${}`
+            .filter(
+              (i, el) =>
+                Number(
+                  $alternativeChapter(el)
+                    .text()
+                    .trim()
+                    .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1]
+                ) === Number(failedJob.chapterNumber)
+            ); // Use $alternativeChapter instead of $
+          const $matchedChapter = cheerio.load(matchedChapter.html());
+
+          chapterToScrape.link = $matchedChapter(`${alternativeWebsite.elements.chapter.link}`).attr("href");
         }
 
         const startTime = Date.now();
@@ -168,15 +193,23 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             `[${deviceName}] ⚠️ Broken image found for chapter ${chapterToScrape.text} | URL: ${error.url} | ERROR: ${error.error}`
           );
 
-          await addDoc(collection(db, "failed-jobs"), {
-            comicId: comic.id ?? null,
-            comicName: comic.title ?? null,
-            chapterNumber: chapterToScrape.text ?? null,
-            latestWebsite: isPerfomingFailedJob ? alternativeWebsite.domain : website.domain,
-            error: error.error.message ?? null,
-            onRetry: false,
-            isCritical: false,
-          });
+          if (isPerfomingFailedJob) {
+            await updateDoc(doc(collection(db, "failed-jobs"), failedJob.id), {
+              error: error.error.message,
+              onRetry: false,
+              latestWebsite: website.domain,
+            });
+          } else {
+            await addDoc(collection(db, "failed-jobs"), {
+              comicId: comic.id ?? null,
+              comicName: comic.title ?? null,
+              chapterNumber: chapterToScrape.text ?? null,
+              latestWebsite: isPerfomingFailedJob ? alternativeWebsite.domain : website.domain,
+              error: error.error.message ?? null,
+              onRetry: false,
+              isCritical: false,
+            });
+          }
 
           continue;
         }
