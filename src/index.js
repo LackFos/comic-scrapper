@@ -91,91 +91,92 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             `${alternativeWebsite.searchElements.listTitle.parent} ${alternativeWebsite.searchElements.listTitle.link}`
           ).attr("href");
 
-          const alternativeChapter = await axios.get(matchedComicLink);
-          const $alternativeChapter = cheerio.load(alternativeChapter.data);
+          if (matchedComicLink) {
+            const alternativeChapter = await axios.get(matchedComicLink);
+            const $alternativeChapter = cheerio.load(alternativeChapter.data);
 
-          const matchedChapter = $alternativeChapter(alternativeWebsite.elements.chapter.parent) // No need for `${}`
-            .filter(
-              (i, el) =>
-                Number(
-                  $alternativeChapter(el)
-                    .text()
-                    .trim()
-                    .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1]
-                ) === Number(failedJob.chapterNumber)
-            ); // Use $alternativeChapter instead of $
-          const $matchedChapter = cheerio.load(matchedChapter.html());
+            const matchedChapter = $alternativeChapter(alternativeWebsite.elements.chapter.parent) // No need for `${}`
+              .filter(
+                (i, el) =>
+                  Number(
+                    $alternativeChapter(el)
+                      .text()
+                      .trim()
+                      .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1]
+                  ) === Number(failedJob.chapterNumber)
+              ); // Use $alternativeChapter instead of $
+            const $matchedChapter = cheerio.load(matchedChapter.html());
 
-          chapterToScrape.link = $matchedChapter(`${alternativeWebsite.elements.chapter.link}`).attr("href");
+            chapterToScrape.link = $matchedChapter(`${alternativeWebsite.elements.chapter.link}`).attr("href");
+          }
         }
 
         const startTime = Date.now();
 
-        const response = await axios.get(chapterToScrape.link);
-        const $ = cheerio.load(response.data);
+        try {
+          const response = await axios.get(chapterToScrape.link);
+          const $ = cheerio.load(response.data);
 
-        const imageUrls = [];
-        const isTsRead = isPerfomingFailedJob ? alternativeWebsite.isTsRead : website.isTsRead;
-        const isLazyLoad = isPerfomingFailedJob ? alternativeWebsite.isLazyLoad : website.isLazyLoad;
+          const imageUrls = [];
+          const isTsRead = isPerfomingFailedJob ? alternativeWebsite.isTsRead : website.isTsRead;
+          const isLazyLoad = isPerfomingFailedJob ? alternativeWebsite.isLazyLoad : website.isLazyLoad;
 
-        // Fetch all image urls
-        if (isTsRead) {
-          const scriptTag = $("script")
-            .filter((i, el) => $(el).html().includes("ts_reader.run("))
-            .html();
+          // Fetch all image urls
+          if (isTsRead) {
+            const scriptTag = $("script")
+              .filter((i, el) => $(el).html().includes("ts_reader.run("))
+              .html();
 
-          if (!scriptTag) {
-            console.log("Script ts_reader.run() tidak ditemukan.");
-            return;
-          }
+            if (!scriptTag) {
+              console.log("Script ts_reader.run() tidak ditemukan.");
+              return;
+            }
 
-          const jsonMatch = scriptTag.match(/ts_reader\.run\((.*?)\);/s);
-          if (!jsonMatch) {
-            console.log("Data tidak ditemukan dalam ts_reader.run().");
-            return;
-          }
+            const jsonMatch = scriptTag.match(/ts_reader\.run\((.*?)\);/s);
+            if (!jsonMatch) {
+              console.log("Data tidak ditemukan dalam ts_reader.run().");
+              return;
+            }
 
-          const jsonData = JSON.parse(jsonMatch[1]);
+            const jsonData = JSON.parse(jsonMatch[1]);
 
-          jsonData.sources[0].images.forEach((image) => {
-            imageUrls.push(
-              image
-                .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
-                .replace("https://", "https://i0.wp.com/")
-                .replace(/\?.*$/, "")
-            );
-          });
-        } else {
-          if (isLazyLoad) {
-            const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
-
-            const noscriptHtml = $(`${chapterImageElement} noscript`).html();
-            const $noscript = cheerio.load(noscriptHtml);
-
-            $noscript("img").each((index, element) => {
+            jsonData.sources[0].images.forEach((image) => {
               imageUrls.push(
-                `${$(element)
-                  .attr("src")
+                image
                   .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
-                  .replace("https://", "https://i0.wp.com/")}`.replace(/\?.*$/, "")
+                  .replace("https://", "https://i0.wp.com/")
+                  .replace(/\?.*$/, "")
               );
             });
           } else {
-            const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
+            if (isLazyLoad) {
+              const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
 
-            $(chapterImageElement).each((index, element) => {
-              imageUrls.push(
-                `${$(element)
-                  .attr("src")
-                  .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
-                  .replace("https://", "https://i0.wp.com/")}`.replace(/\?.*$/, "")
-              );
-            });
+              const noscriptHtml = $(`${chapterImageElement} noscript`).html();
+              const $noscript = cheerio.load(noscriptHtml);
+
+              $noscript("img").each((index, element) => {
+                imageUrls.push(
+                  `${$(element)
+                    .attr("src")
+                    .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
+                    .replace("https://", "https://i0.wp.com/")}`.replace(/\?.*$/, "")
+                );
+              });
+            } else {
+              const chapterImageElement = isPerfomingFailedJob ? alternativeWebsite.elements.chapter.image : website.elements.chapter.image;
+
+              $(chapterImageElement).each((index, element) => {
+                imageUrls.push(
+                  `${$(element)
+                    .attr("src")
+                    .replace(/https:\/\/(?:i0|i2|i3)\.wp\.com/i, "https://")
+                    .replace("https://", "https://i0.wp.com/")}`.replace(/\?.*$/, "")
+                );
+              });
+            }
           }
-        }
 
-        // Check if images are cached and not broken
-        try {
           logger.info(`[${deviceName}] Checking images validity for chapter ${chapterToScrape.text}...`);
 
           for (const url of imageUrls) {
@@ -195,7 +196,8 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             await updateDoc(doc(collection(db, "failed-jobs"), failedJob.id), {
               error: errorMessage,
               onRetry: false,
-              latestWebsite: website.domain,
+              isCritical: alternativeWebsite.domain === "komik5.mangatoon.cc",
+              latestWebsite: alternativeWebsite.domain,
             });
           } else {
             await addDoc(collection(db, "failed-jobs"), {
