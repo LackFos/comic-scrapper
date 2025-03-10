@@ -113,13 +113,13 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
         const startTime = Date.now();
 
+        const imageUrls = [];
+        const isTsRead = isPerfomingFailedJob ? alternativeWebsite.isTsRead : website.isTsRead;
+        const isLazyLoad = isPerfomingFailedJob ? alternativeWebsite.isLazyLoad : website.isLazyLoad;
+
         try {
           const response = await axios.get(chapterToScrape.link);
           const $ = cheerio.load(response.data);
-
-          const imageUrls = [];
-          const isTsRead = isPerfomingFailedJob ? alternativeWebsite.isTsRead : website.isTsRead;
-          const isLazyLoad = isPerfomingFailedJob ? alternativeWebsite.isLazyLoad : website.isLazyLoad;
 
           // Fetch all image urls
           if (isTsRead) {
@@ -222,22 +222,22 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             images: imageUrls,
           };
 
-          await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, createChapterPayload, {
+          const createChapterResponse = await axios.post(`${process.env.API_ENDPOINT}/api/chapters`, createChapterPayload, {
             headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data", Accept: "application/json" },
           });
 
-          // try {
-          //   axios.post("https://api.indexnow.org/indexnow", {
-          //     host: "https://komikoi.com",
-          //     key: "9da618746c5f47a69d45a7bdbdab8dce",
-          //     keyLocation: "https://komikoi.com/9da618746c5f47a69d45a7bdbdab8dce.txt",
-          //     urlList: [`https://komikoi.com/baca/${createChapterResponse.data.payload.slug}`],
-          //   });
+          try {
+            axios.post("https://api.indexnow.org/indexnow", {
+              host: "https://komikdewasa.id",
+              key: "55174ee475c14edcb2fe81d4d8833a0a",
+              keyLocation: "https://komikdewasa.id/55174ee475c14edcb2fe81d4d8833a0a.txt",
+              urlList: [`https://komikdewasa.id/baca/${createChapterResponse.data.payload.slug}`],
+            });
 
-          //   logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
-          // } catch (error) {
-          //   logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
-          // }
+            logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
+          } catch (error) {
+            logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
+          }
 
           if (isPerfomingFailedJob) {
             await deleteDoc(doc(collection(db, "failed-jobs"), failedJob.id));
@@ -245,6 +245,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
 
           logger.info(`[${deviceName}] 🎉 Chapter ${chapterToScrape.text} processed in ${(Date.now() - startTime) / 1000} seconds`);
         } catch (error) {
+          console.log(error);
           logger.error(`[${deviceName}] ⚠️ Failed to create chapter ${chapterToScrape.link}, ${error.message}`);
         }
       }
@@ -471,18 +472,18 @@ async function createComic(createComicPayload) {
       headers: { Authorization: process.env.ACCESS_TOKEN, "Content-Type": "multipart/form-data" },
     });
 
-    // try {
-    //   axios.post("https://api.indexnow.org/indexnow", {
-    //     host: "https://komikoi.com",
-    //     key: "9da618746c5f47a69d45a7bdbdab8dce",
-    //     keyLocation: "https://komikoi.com/9da618746c5f47a69d45a7bdbdab8dce.txt",
-    //     urlList: [`https://komikoi.com/komik/${createComicResponse.data.payload.slug}`],
-    //   });
+    try {
+      axios.post("https://api.indexnow.org/indexnow", {
+        host: "https://komikdewasa.id",
+        key: "55174ee475c14edcb2fe81d4d8833a0a",
+        keyLocation: "https://komikdewasa.id/55174ee475c14edcb2fe81d4d8833a0a.txt",
+        urlList: [`https://komikdewasa.id/komik/${createComicResponse.data.payload.slug}`],
+      });
 
-    //   logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
-    // } catch (error) {
-    //   logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
-    // }
+      logger.info(`[${deviceName}] ⚙️ Sucessfuly send to IndexNow!`);
+    } catch (error) {
+      logger.error(`[${deviceName}] ⚠️ Failed to send to IndexNow : ${error.message}`);
+    }
 
     logger.info(`[${deviceName}] ✅ Comic created successfuly`);
 
