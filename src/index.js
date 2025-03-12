@@ -196,7 +196,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             await updateDoc(doc(collection(db, "failed-jobs"), failedJob.id), {
               error: errorMessage,
               onRetry: false,
-              isCritical: alternativeWebsite.domain === "komik5.mangatoon.cc",
+              isCritical: alternativeWebsite.domain === "mangasusu.sbs",
               latestWebsite: alternativeWebsite.domain,
             });
           } else {
@@ -489,6 +489,7 @@ async function createComic(createComicPayload) {
 
     return createComicResponse.data;
   } catch (error) {
+    console.error(error);
     logger.error(`[${deviceName}] ⚠️ Failed to create comic : ${error.message}`);
     process.exit(1);
   }
