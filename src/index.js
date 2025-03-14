@@ -196,7 +196,7 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
             await updateDoc(doc(collection(db, "failed-jobs"), failedJob.id), {
               error: errorMessage,
               onRetry: false,
-              isCritical: alternativeWebsite.domain === "mangasusu.sbs",
+              isCritical: alternativeWebsite.domain === "komik5.mangatoon.cc",
               latestWebsite: alternativeWebsite.domain,
             });
           } else {
