@@ -13,7 +13,10 @@ dotenv.config();
 puppeteer.use(pluginStealth());
 export const scrapper = puppeteer;
 
-const logtail = new Logtail(process.env.LOGTAIL_SOURCE_TOKEN);
+const logtail = new Logtail(process.env.LOGTAIL_SOURCE_TOKEN, {
+  endpoint: process.env.LOGTAIL_INGESTING_HOST,
+});
+
 export const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp(),
