@@ -280,7 +280,7 @@ export const WEBSITES = {
     domain: "komik5.mangatoon.cc",
     default: "https://komik5.mangatoon.cc",
     search: "https://komik5.mangatoon.cc/?s=",
-    alternative: "komikdewasa.mom",
+    alternative: "komikindo.ing",
     isTsRead: true,
     searchElements: {
       listTitle: {

@@ -105,9 +105,15 @@ onSnapshot(collection(db, "failed-jobs"), (snapshot) => {
                       .match(/chapter\s*(\d+(\.\d+)*).*/i)?.[1]
                   ) === Number(failedJob.chapterNumber)
               ); // Use $alternativeChapter instead of $
-            const $matchedChapter = cheerio.load(matchedChapter.html());
 
-            chapterToScrape.link = $matchedChapter(`${alternativeWebsite.elements.chapter.link}`).attr("href");
+            if (matchedChapter.html()) {
+              const $matchedChapter = cheerio.load(matchedChapter.html());
+              chapterToScrape.link = $matchedChapter(`${alternativeWebsite.elements.chapter.link}`).attr("href");
+            } else {
+              logger.error(`[${deviceName}] ⚠️ Failed to find alternative chapter link`);
+              await updateDoc(doc(collection(db, "failed-jobs"), failedJob.id), { aborted: true });
+              continue;
+            }
           }
         }
 
